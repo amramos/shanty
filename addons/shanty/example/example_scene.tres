@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="CutsceneDefinition" format=3]
+
+[ext_resource type="Script" path="res://addons/shanty/data/cutscene_definition.gd" id="1_scene"]
+[ext_resource type="Script" path="res://addons/shanty/data/cutscene_step.gd" id="2_step"]
+[ext_resource type="Script" path="res://addons/shanty/data/steps/backdrop_step.gd" id="3_backdrop"]
+[ext_resource type="Script" path="res://addons/shanty/data/steps/fade_step.gd" id="4_fade"]
+[ext_resource type="Resource" path="res://addons/shanty/example/example_conversation.tres" id="5_conversation"]
+[ext_resource type="Script" path="res://addons/shanty/data/steps/say_step.gd" id="6_say"]
+
+[sub_resource type="Resource" id="Resource_backdrop"]
+script = ExtResource("3_backdrop")
+letterbox = true
+
+[sub_resource type="Resource" id="Resource_fade_in"]
+script = ExtResource("4_fade")
+to_black = false
+
+[sub_resource type="Resource" id="Resource_say"]
+script = ExtResource("6_say")
+conversation = ExtResource("5_conversation")
+
+[sub_resource type="Resource" id="Resource_fade_out"]
+script = ExtResource("4_fade")
+
+[resource]
+script = ExtResource("1_scene")
+scene_id = &"shanty_example_lamp"
+title_key = "SHANTY_EXAMPLE_TITLE"
+remembered = true
+synopsis_key = "SHANTY_EXAMPLE_SYNOPSIS"
+steps = Array[ExtResource("2_step")]([SubResource("Resource_backdrop"), SubResource("Resource_fade_in"), SubResource("Resource_say"), SubResource("Resource_fade_out")])

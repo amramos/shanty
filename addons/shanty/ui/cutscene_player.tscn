@@ -1,0 +1,117 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://addons/shanty/ui/cutscene_player.gd" id="1_player"]
+[ext_resource type="PackedScene" path="res://addons/shanty/ui/dialogue_view.tscn" id="2_view"]
+[ext_resource type="Script" path="res://addons/shanty/ui/skip_hold.gd" id="3_skip"]
+[ext_resource type="Script" path="res://addons/shanty/ui/shanty_backdrop.gd" id="4_backdrop"]
+
+[node name="CutscenePlayer" type="CanvasLayer"]
+process_mode = 1
+layer = 18
+script = ExtResource("1_player")
+
+[node name="InputShield" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Ground" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Backdrop" type="TextureRect" parent="."]
+unique_name_in_owner = true
+visible = false
+texture_filter = 1
+layout_mode = 3
+mouse_filter = 2
+expand_mode = 1
+script = ExtResource("4_backdrop")
+
+[node name="LetterboxTop" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="LetterboxBottom" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Dim" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="DialogueView" parent="." instance=ExtResource("2_view")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+
+[node name="Fade" type="ColorRect" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="SkipHold" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -40.0
+offset_right = -24.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("3_skip")
+
+[node name="ReadingAgain" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 14.0
+offset_right = -24.0
+offset_bottom = 30.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_type_variation = &"ShantyHint"
+text = "READING AGAIN"
+horizontal_alignment = 2

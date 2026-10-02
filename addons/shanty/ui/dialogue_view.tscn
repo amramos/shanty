@@ -1,0 +1,105 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/shanty/ui/dialogue_view.gd" id="1_view"]
+[ext_resource type="Script" path="res://addons/shanty/ui/shanty_continue_marker.gd" id="2_marker"]
+
+[node name="DialogueView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_view")
+
+[node name="Bar" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"ShantyBar"
+
+[node name="Margin" type="MarginContainer" parent="Bar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="Row" type="HBoxContainer" parent="Bar/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Portrait" type="PanelContainer" parent="Bar/Margin/Row"]
+custom_minimum_size = Vector2(96, 128)
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"ShantyPortrait"
+
+[node name="Face" type="TextureRect" parent="Bar/Margin/Row/Portrait"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PlateName" type="Label" parent="Bar/Margin/Row/Portrait"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ShantyHint"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Column" type="VBoxContainer" parent="Bar/Margin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="NamePlate" type="Label" parent="Bar/Margin/Row/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ShantyName"
+
+[node name="Line" type="RichTextLabel" parent="Bar/Margin/Row/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ShantyLine"
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 3
+
+[node name="ReplyBlock" type="MarginContainer" parent="Bar/Margin/Row/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="Choices" type="VBoxContainer" parent="Bar/Margin/Row/Column/ReplyBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="ContinueMarker" type="Control" parent="Bar/Margin/Row/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 6)
+layout_mode = 2
+size_flags_horizontal = 8
+mouse_filter = 2
+script = ExtResource("2_marker")

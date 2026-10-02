@@ -1,0 +1,26 @@
+# Line endings: LF for everything Git considers text.
+* text=auto eol=lf
+
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.godot text eol=lf
+*.cfg text eol=lf
+*.csv text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.sha256 text eol=lf
+
+*.png binary
+*.ogg binary
+*.wav binary
+
+# `git archive` of a tag (and GitHub's source zip) holds the addon alone.
+# Every top-level entry is ignored, then addons/ is let back in, then every
+# addon but Shanty is ignored again, so a file added later is excluded by default.
+/* export-ignore
+/addons -export-ignore
+/addons/* export-ignore
+/addons/shanty -export-ignore
