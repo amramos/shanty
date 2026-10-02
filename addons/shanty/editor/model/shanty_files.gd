@@ -9,7 +9,7 @@ extends RefCounted
 ## this is the single place the addon loads a path it did not write itself --
 ## and the self-containment test lets exactly this file do so.
 
-const BOM: String = "﻿"
+const BOM: String = "\uFEFF"
 
 
 ## The file's text, read as UTF-8 bytes so nothing is normalised on the way in:

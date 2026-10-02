@@ -26,7 +26,7 @@ const FLAG_SEPARATOR: String = "|"
 const LOCALE_PATTERN: String = "^[A-Za-z]{2,3}(?:[_-][A-Za-z0-9]+)*(?:@[A-Za-z]+)?$"
 ## U+FEFF, which `ShantyFiles.read_text()` keeps at the start of a file that
 ## began with a UTF-8 byte-order mark.
-const BOM: String = "﻿"
+const BOM: String = "\uFEFF"
 
 var _header: ShantyCsvRow = ShantyCsvRow.new(PackedStringArray([KEYS_HEADER]))
 ## Every record after the header, blank ones included, in file order.
