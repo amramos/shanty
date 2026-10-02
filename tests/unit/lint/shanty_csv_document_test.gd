@@ -171,13 +171,6 @@ func test_shape_problems_are_reported() -> void:
 	assert_eq(document.text("A", "en"), "x", "the first row answers")
 
 
-func test_crlf_input_is_written_as_lf() -> void:
-	var document: ShantyCsvDocument = ShantyCsvDocument.parse("keys,en\r\nA,x\r\n")
-
-	assert_eq(document.text("A", "en"), "x")
-	assert_eq(document.to_text(), "keys,en\nA,x\n")
-
-
 func test_an_empty_text_is_a_document_with_a_keys_header() -> void:
 	var document: ShantyCsvDocument = ShantyCsvDocument.parse("")
 

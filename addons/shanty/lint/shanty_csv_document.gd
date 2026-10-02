@@ -9,9 +9,13 @@ extends RefCounted
 ## `_` column is the writer's: `_notes` is free text, `_flags` a structured list
 ## of tokens separated by `|`, and any other is kept exactly as found.
 ##
-## A row nobody edits is written back byte for byte; an edited or new row is
-## encoded afresh (`ShantyCsvCodec`). The file is always written as UTF-8 with
-## LF line endings and a final line break.
+## **Bytes outside the edited records never change.** A row nobody edits is
+## written back byte for byte, with the terminator it was read with (LF or
+## CRLF, mixed as the file mixes them); an edited row is encoded afresh
+## (`ShantyCsvCodec`) and keeps its own terminator; a new row takes the file's
+## dominant one. A byte-order mark, and whether the file ended with a line
+## break, are kept as found. An empty document is written with LF and a final
+## line break.
 
 const KEYS_HEADER: String = "keys"
 const FLAGS_HEADER: String = "_flags"
@@ -20,28 +24,43 @@ const NOTES_HEADER: String = "_notes"
 ## whitespace, so no flag name may contain it.
 const FLAG_SEPARATOR: String = "|"
 const LOCALE_PATTERN: String = "^[A-Za-z]{2,3}(?:[_-][A-Za-z0-9]+)*(?:@[A-Za-z]+)?$"
+## U+FEFF, which `ShantyFiles.read_text()` keeps at the start of a file that
+## began with a UTF-8 byte-order mark.
+const BOM: String = "﻿"
 
 var _header: ShantyCsvRow = ShantyCsvRow.new(PackedStringArray([KEYS_HEADER]))
 ## Every record after the header, blank ones included, in file order.
 var _rows: Array[ShantyCsvRow] = []
+var _bom: bool = false
+var _ends_with_line_break: bool = true
 
 
 ## The document `text` holds. Empty text is a document with a `keys` header.
 static func parse(text: String) -> ShantyCsvDocument:
 	var document := ShantyCsvDocument.new()
-	var records: Array[ShantyCsvRow] = ShantyCsvCodec.parse(text)
+	document._bom = text.begins_with(BOM)
+	var body: String = text.substr(BOM.length()) if document._bom else text
+	var records: Array[ShantyCsvRow] = ShantyCsvCodec.parse(body)
 	if not records.is_empty():
 		document._header = records.pop_front()
 		document._rows = records
+		document._ends_with_line_break = body.ends_with(ShantyCsvCodec.LF)
 	return document
 
 
 ## The whole file, ready to write.
 func to_text() -> String:
-	var lines: PackedStringArray = [_encoded(_header)]
-	for row: ShantyCsvRow in _rows:
-		lines.append(_encoded(row))
-	return "\n".join(lines) + "\n"
+	var records: Array[ShantyCsvRow] = [_header]
+	records.append_array(_rows)
+	var dominant: String = ShantyCsvCodec.dominant_terminator(records)
+	var parts: PackedStringArray = [BOM if _bom else ""]
+	for index: int in records.size():
+		var row: ShantyCsvRow = records[index]
+		var ending: String = row.terminator if not row.terminator.is_empty() else dominant
+		if index == records.size() - 1 and not _ends_with_line_break:
+			ending = ""
+		parts.append(_encoded(row) + ending)
+	return "".join(parts)
 
 
 func header() -> PackedStringArray:

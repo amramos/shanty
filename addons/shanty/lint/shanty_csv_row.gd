@@ -10,6 +10,9 @@ var cells: PackedStringArray = []
 ## The record's source text without its line terminator. Empty for a row made
 ## in memory, which is always encoded afresh.
 var raw: String = ""
+## What ended the record in the file: LF, CRLF, or "" for a last record with no
+## line break after it and for a row made in memory, which takes the file's own.
+var terminator: String = ""
 ## True once a cell has changed since the row was read.
 var dirty: bool = true
 

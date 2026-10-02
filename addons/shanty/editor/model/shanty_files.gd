@@ -9,16 +9,26 @@ extends RefCounted
 ## this is the single place the addon loads a path it did not write itself --
 ## and the self-containment test lets exactly this file do so.
 
+const BOM: String = "﻿"
 
-## The file's text, read as UTF-8 bytes so nothing is normalised on the way in.
-## "" when it cannot be read.
+
+## The file's text, read as UTF-8 bytes so nothing is normalised on the way in:
+## line breaks stay as they are, and a byte-order mark is kept as a leading
+## U+FEFF (the decoder alone would drop it). "" when it cannot be read.
 static func read_text(path: String) -> String:
 	if not FileAccess.file_exists(path):
 		return ""
-	return FileAccess.get_file_as_bytes(path).get_string_from_utf8()
+	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
+	var text: String = bytes.get_string_from_utf8()
+	var has_bom: bool = (
+		bytes.size() >= 3 and bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF
+	)
+	if has_bom and not text.begins_with(BOM):
+		return BOM + text
+	return text
 
 
-## Writes `text` as UTF-8, without a byte-order mark.
+## Writes `text` as UTF-8; a leading U+FEFF is written as the byte-order mark.
 static func write_text(path: String, text: String) -> Error:
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:

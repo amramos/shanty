@@ -6,16 +6,21 @@ extends RefCounted
 ## them (`FileAccess.get_csv_line()`): a comma separates cells, a `"` toggles
 ## quoting anywhere in a cell, `""` inside quotes is one literal quote, a line
 ## break inside quotes belongs to the cell, and every carriage return is
-## dropped from a value. Each record also keeps the text it came from, so an
-## untouched row can be written back unchanged.
+## dropped from a value. Each record also keeps the text it came from and the
+## line terminator that ended it, so an untouched row is written back byte for
+## byte.
 
 const DELIMITER: String = ","
 const QUOTE: String = '"'
+const LF: String = "\n"
+const CR: String = "\r"
+const CRLF: String = CR + LF
 
 
 ## Every record in `text`, in order. A final line break ends the last record
 ## rather than starting an empty one; a blank line is a record of one empty
-## cell, as the importer sees it.
+## cell, as the importer sees it. Each record remembers its terminator: CRLF,
+## LF, or "" for a last record with no line break after it.
 static func parse(text: String) -> Array[ShantyCsvRow]:
 	var rows: Array[ShantyCsvRow] = []
 	var cells: PackedStringArray = []
@@ -35,20 +40,20 @@ static func parse(text: String) -> Array[ShantyCsvRow]:
 				index += 1
 			else:
 				in_quote = not in_quote
-		elif character == "\n" and not in_quote:
+		elif character == LF and not in_quote:
 			cells.append(current)
-			rows.append(
-				ShantyCsvRow.new(cells, _without_cr(text.substr(start, index - start)), false)
-			)
+			var crlf: bool = index > start and text[index - 1] == CR
+			var end: int = index - 1 if crlf else index
+			rows.append(_row(cells, text.substr(start, end - start), CRLF if crlf else LF))
 			cells = []
 			current = ""
 			start = index + 1
-		elif character != "\r":
+		elif character != CR:
 			current += character
 		index += 1
 	if start < length:
 		cells.append(current)
-		rows.append(ShantyCsvRow.new(cells, _without_cr(text.substr(start)), false))
+		rows.append(_row(cells, text.substr(start), ""))
 	return rows
 
 
@@ -67,15 +72,28 @@ static func encode_field(value: String) -> String:
 	var needs_quotes: bool = (
 		value.contains(DELIMITER)
 		or value.contains(QUOTE)
-		or value.contains("\n")
-		or value.contains("\r")
+		or value.contains(LF)
+		or value.contains(CR)
 	)
 	if not needs_quotes:
 		return value
 	return QUOTE + value.replace(QUOTE, QUOTE + QUOTE) + QUOTE
 
 
-## A record's source without the carriage return of a CRLF terminator, so a
-## file written on Windows is normalised to LF the first time it is saved.
-static func _without_cr(source: String) -> String:
-	return source.trim_suffix("\r")
+## The terminator most of `records` were read with; LF on a tie or when none was
+## read, so a new file is written with LF.
+static func dominant_terminator(records: Array[ShantyCsvRow]) -> String:
+	var crlf: int = 0
+	var lf: int = 0
+	for row: ShantyCsvRow in records:
+		if row.terminator == CRLF:
+			crlf += 1
+		elif row.terminator == LF:
+			lf += 1
+	return CRLF if crlf > lf else LF
+
+
+static func _row(cells: PackedStringArray, source: String, terminator: String) -> ShantyCsvRow:
+	var row := ShantyCsvRow.new(cells, source, false)
+	row.terminator = terminator
+	return row
