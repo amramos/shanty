@@ -72,6 +72,7 @@ func _open(fresh: bool) -> void:
 func _select(resource: Resource) -> void:
 	_selected = resource
 	_show_selected()
+	_run_lint()
 
 
 func _show_selected() -> void:
@@ -152,8 +153,7 @@ func _show_issues(found: Array[ShantyLintIssue]) -> void:
 		_issues.set_item_custom_fg_color(
 			at, Palette.error() if issue.is_error() else Palette.warning()
 		)
-	if _line_table.visible:
-		_line_table.apply_issues(found)
+	_line_table.apply_issues(found)
 	_toolbar.show_coverage(_model.coverage())
 
 
