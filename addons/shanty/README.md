@@ -325,7 +325,12 @@ anyone editing those files as text can work on one project.
 
 **Point it at your project.** The tab reads one `ShantyProjectConfig` resource, named by the project
 setting `shanty/config_path` (**Project Settings > General > Shanty**, shown once the plugin is
-enabled). Make one with **Create New > Resource… > ShantyProjectConfig** and set:
+enabled). The setting defaults to the example's config inside the addon, so a project that has just
+installed Shanty opens the tab on the demo. When the setting is empty, names no file, or names
+something that is not a config, the tab says which in its status line, shows an empty state, and
+offers **Create config…**: pick where to save it, and the tab writes a new config whose CSV
+(`dialogue_strings.csv`) and folders sit beside it, points the setting at it, opens it, and hands it
+to the Inspector. You can also make one with **Create New > Resource… > ShantyProjectConfig**. Set:
 
 - `csv_path` — your translation CSV.
 - `speakers_folder`, `conversations_folder`, `scenes_folder`, `triggers_folder` — where those
@@ -338,7 +343,7 @@ enabled). Make one with **Create New > Resource… > ShantyProjectConfig** and s
 - `required_locales`, `trigger_ids`, `theme_path`, `preview_host_path` — yours to read in your own
   tests, or used by the preview in 0.3.0; Shanty enforces none of them.
 
-This repository's own setting points at `example/shanty_config.tres`, so opening it shows the
+This repository's own setting points at `example/shanty_config.tres` too, so opening it shows the
 lighthouse conversation in the tab.
 
 **The panes.** The left pane lists your speakers and conversations (scenes and triggers are listed;
@@ -353,7 +358,10 @@ The centre edits what you picked:
   line: its label (a jump target), **+ Condition** and **+ Effect** (every subclass of
   `ShantyCondition` or `ShantyEffect` your project declares, or any script file that extends one;
   the new entry opens in the Inspector, where you edit its exports), **+ Choice** (up to three
-  replies, each with its own key, a jump and effects), and who answers the replies.
+  replies, each with its own key, a jump and effects), who answers the replies, and the line's
+  own actions: **Insert after** (a new line straight below, in the same voice), **↑** and **↓**
+  (move it), and **Remove line**. **+ Line** under the table adds one at the end. Changing a line's
+  speaker drops a face the new speaker does not have.
 
 The right pane is where the line preview arrives in 0.3.0.
 
@@ -368,16 +376,26 @@ translation fails anything is your rule, in your own tests.
 
 **Keys.** A new line is keyed `DLG_<CONVERSATION>_<nn>` by default, its replies `<line key>A`, `B`
 and `C`, and a speaker's name `SPEAKER_<ID>`; a conversation's prefix is editable, and a
-`ShantyKeyScheme` changes any pattern. **A key is never renumbered**: a line inserted
-mid-conversation takes the next free number. New rows go into the CSV as one block after the
-conversation's last row, so two people adding to different conversations touch different parts of
-the file, and every row you did not edit is written back byte for byte.
+`ShantyKeyScheme` changes any pattern (the example's names its replies `<line key>_A`, through
+`reply_key = "{LINE}_{LETTER}"`). **A key is never renumbered**: a line inserted mid-conversation
+takes the next free number, and moving a line changes the order only — no key and no CSV row
+moves. New rows go into the CSV as one block after the conversation's last row, so two people
+adding to different conversations touch different parts of the file.
+
+**Your CSV's bytes are kept.** Every row you did not edit is written back byte for byte, with the
+line ending it had — LF or CRLF, mixed if the file mixes them; an edited row keeps its own; a new row
+takes the ending most of the file uses. A byte-order mark, and whether the file ended with a line
+break, are kept as found.
 
 **Lint.** Lint runs as you type, on demand, and before every Save. Errors refuse Save: a key missing
 from the CSV or on two rows, a row of the wrong width (Godot's importer drops it), a flagged line
 containing one of its flag's forbidden words, `{name:<id>}` tokens that differ between locales, a
 reply jumping to a label no line carries, a conversation that can loop, an unknown speaker or face,
-two replies that could not be told apart in a played record. Warnings never do: an over-length line,
+a reply key used twice — under one line, on two lines, or in two conversations, since a played
+record names a reply by its key alone. A forbidden word is matched whole and case-insensitively;
+an accent or other combining mark belongs to its word, and an apostrophe is an edge, so `she` is
+found in `she's` and `homme` in `l'homme` (a listed `she's` matches only itself, and `’` reads as
+`'`). Warnings never do: an over-length line,
 a flag your config does not name, a token naming a speaker the speakers folder lacks. A host's own
 tests can run the same checks: `ShantyLint.check()` takes the CSV and the resources and touches
 neither the editor nor the disk.
@@ -387,6 +405,13 @@ conversation you changed, through `ResourceSaver`. Each file's content is finger
 tab reads it; if any file Save would write has changed on disk since — someone else edited it —
 Save refuses and writes nothing, and **Reload** reads the files again, dropping your unsaved edits.
 It never overwrites rows it has not seen.
+
+**Save is all or nothing.** Every file is first written beside its target (`<file>.shanty-tmp`, or
+`<name>.shanty-tmp.tres` for a resource) and read back; only when every one is ready are they moved
+over their targets. If any write fails, every file is left exactly as it was — a target already
+replaced is put back from the bytes read before the save — and your edits stay unsaved. If the
+editor is scanning or importing when you save, the tab waits for it to finish before it asks for
+the reimport.
 
 ## The host contract
 

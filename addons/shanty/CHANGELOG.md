@@ -21,7 +21,8 @@ pure checks it shares with a host's own tests. Scenes, triggers, the line previe
   name key, the name in two locales, notes and faces, each face's texture chosen through the
   editor's resource picker; a line table with speaker and face dropdowns, source and target text,
   each key and its state, flag toggles, notes, labels, up to three replies with their own keys, jumps
-  and effects, and condition and effect pickers whose entries are edited in the Inspector. A toolbar
+  and effects, condition and effect pickers whose entries are edited in the Inspector, and per line
+  **Insert after**, up, down and remove. A toolbar
   with the source and target locale dropdowns, **+ Locale**, the coverage strip, Reload, Lint and
   Save.
 - **Locales come from the CSV header only.** Any column that is not the keys column and does not
@@ -33,30 +34,49 @@ pure checks it shares with a host's own tests. Scenes, triggers, the line previe
 - **`_flags`**, a structured CSV column of `|`-separated tokens, beside the free-text `_notes`. A host
   names its flags and, per locale, the whole words a flagged line may not contain; Shanty knows no
   flag by name.
-- **Save that never overwrites unseen work.** Save lints first and refuses on an error; it
-  fingerprints every file when it is read and refuses, writing nothing, when one it would write has
-  changed on disk since. It writes the CSV with every untouched row byte for byte and new rows as one
-  block after their conversation's last row, saves changed resources through `ResourceSaver`, and
-  reimports the CSV.
+- **Save that never overwrites unseen work, all or nothing.** Save lints first and refuses on an
+  error; it fingerprints every file when it is read and refuses, writing nothing, when one it would
+  write has changed on disk since. It stages every output beside its target, reads each back, and
+  only then moves them over their targets (`ShantySaveTransaction`); a failure at any point leaves
+  every file as it was, putting back any target already replaced. New rows go in as one block after
+  their conversation's last row, changed resources are saved through `ResourceSaver`, and the CSV is
+  reimported once the editor's filesystem is idle — never a scan during a scan.
+- **A CSV's bytes are kept outside the rows you edit.** Every untouched row is written back byte for
+  byte with its own line ending (LF or CRLF, mixed as the file mixes them); an edited row keeps its
+  ending and a new row takes the file's dominant one; a byte-order mark and a missing final line
+  break are kept.
+- **Insert and reorder lines without renumbering.** `ShantyConversationEdits.insert_line_after()`
+  keys a new line by the next free number wherever it sits; `move_line()` changes order only, no key
+  and no CSV row.
 - **`lint/`, pure and headless:** `ShantyCsvDocument` (with `ShantyCsvCodec` and `ShantyCsvRow`)
   reads and writes the translation CSV exactly as Godot's importer reads it; `ShantyLocaleCoverage`;
   `ShantyKeyScheme`, which names new keys from configurable patterns and never renumbers one;
   `ShantyLint` (with `ShantyLintText`), whose `ShantyLintIssue`s cover missing and doubled keys, rows
   the importer would drop, flagged words, `{name:}` tokens that differ between locales, loops, jumps
-  to missing labels, unknown speakers and faces, replies a played record could not tell apart, and
-  over-length lines; and `ShantyProjectConfig` with `ShantyFlagRule`.
+  to missing labels, unknown speakers and faces, a reply key used twice anywhere in the
+  conversations it is handed (a played record could not tell them apart), and over-length lines;
+  and `ShantyProjectConfig` with `ShantyFlagRule`. A forbidden word is matched whole and
+  case-insensitively, a combining mark belongs to its word, and an apostrophe is a word edge.
 - **`editor/model/`, testable without the editor:** `ShantyEditorModel`, `ShantySpeakerEdits`,
-  `ShantyConversationEdits`, `ShantyClassCatalog`, `ShantySaveResult` and `ShantyFiles`.
+  `ShantyConversationEdits`, `ShantyClassCatalog`, `ShantySaveResult`, `ShantySaveTransaction` and
+  `ShantyFiles`. The tab itself also instantiates and opens headlessly.
 - **The project setting `shanty/config_path`**, registered by the plugin, naming the host's
-  `ShantyProjectConfig`.
+  `ShantyProjectConfig`. It defaults to the example's config inside the addon, so a fresh install
+  opens on the demo. With no usable config the tab names the problem (`ShantyEditorModel.Problem`),
+  shows an empty state, and offers **Create config…**, which saves a new config with its CSV and
+  folders beside it and points the setting at it.
 - **The example is the tab's demo:** `example/shanty_config.tres` (its CSV and folders, a key scheme
-  matching its keys, and one flag, `NEUTRAL`, with English pronouns), a partial French column and a
+  matching its line and reply keys, and one flag, `NEUTRAL`, with English pronouns), a partial French column and a
   `_flags` column in `example_strings.csv`, and this repository's `shanty/config_path` pointing at it.
 
 ### Changed
 
 - **`plugin.cfg` is no longer editor-inert.** Enabling the plugin adds the tab and the project
   setting. The runtime still needs no plugin: every class registers through `class_name`.
+- The example's two reply keys are renamed `SHANTY_EXAMPLE_REPLY_A`/`_B` →
+  `SHANTY_EXAMPLE_LINE_3_A`/`_B`, so its key scheme (`reply_key = "{LINE}_{LETTER}"`) names them.
+  Example data only, not a shape change; a project that followed the 0.1.0 tutorial against the
+  example's strings renames the two `text_key`s in its own conversation.
 - The example's placeholder face border is pure black (`Color.BLACK`), the neutral default a host's
   palette check expects, rather than a near-black.
 - The example's translation loader skips an empty cell, so a partly translated locale falls back
