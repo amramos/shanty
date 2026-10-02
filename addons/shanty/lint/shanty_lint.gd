@@ -33,18 +33,26 @@ const RULE_DUPLICATE_REPLY: StringName = &"duplicate_reply"
 const RULE_TOO_MANY_REPLIES: StringName = &"too_many_replies"
 const RULE_TOKEN_MISMATCH: StringName = &"token_mismatch"
 const RULE_UNKNOWN_TOKEN: StringName = &"unknown_token"
+## Scenes and triggers (`ShantyLintStory`).
+const RULE_UNPLAYABLE_SCENE: StringName = &"unplayable_scene"
+const RULE_UNKNOWN_TRIGGER: StringName = &"unknown_trigger"
+const RULE_DUPLICATE_TRIGGER: StringName = &"duplicate_trigger"
+const RULE_EMPTY_TRIGGER: StringName = &"empty_trigger"
+const RULE_UNKNOWN_SCENE: StringName = &"unknown_scene"
+const RULE_DUPLICATE_CANDIDATE: StringName = &"duplicate_candidate"
 ## The runtime shows at most this many replies under a line.
 const MAX_REPLIES: int = 3
 
 
 ## Every finding, in a stable order: the file's shape, flags, speakers, tokens,
-## then each conversation and scene, then length.
+## then each conversation, scene and trigger, then length.
 static func check(
 	document: ShantyCsvDocument,
 	config: ShantyProjectConfig,
 	speakers: Array[SpeakerDefinition],
 	conversations: Array[ConversationDefinition],
-	scenes: Array[CutsceneDefinition] = []
+	scenes: Array[CutsceneDefinition] = [],
+	triggers: Array[StoryTriggerDefinition] = []
 ) -> Array[ShantyLintIssue]:
 	var issues: Array[ShantyLintIssue] = []
 	ShantyLintText.check_shape(document, issues)
@@ -65,8 +73,11 @@ static func check(
 			_check_conversation(document, conversation, faces, issues, spoken, replies)
 	for scene: CutsceneDefinition in scenes:
 		if scene != null:
-			_require_key(document, scene.title_key, _where(scene, scene.scene_id), issues, true)
-			_require_key(document, scene.synopsis_key, _where(scene, scene.scene_id), issues, true)
+			var at: String = location_of(scene, scene.scene_id)
+			_require_key(document, scene.title_key, at, issues, true)
+			_require_key(document, scene.synopsis_key, at, issues, true)
+	ShantyLintStory.check_scenes(scenes, issues)
+	ShantyLintStory.check_triggers(config, scenes, triggers, issues)
 	var cap: int = config.length_cap if config != null else 0
 	ShantyLintText.check_length(document, spoken, cap, issues)
 	return issues
@@ -93,7 +104,7 @@ static func _check_speakers(
 	for speaker: SpeakerDefinition in speakers:
 		if speaker == null:
 			continue
-		var where: String = _where(speaker, speaker.speaker_id)
+		var where: String = location_of(speaker, speaker.speaker_id)
 		if speaker.speaker_id.is_empty():
 			issues.append(
 				ShantyLintIssue.error(RULE_UNKNOWN_SPEAKER, "the speaker has no id", "", where)
@@ -125,7 +136,7 @@ static func _check_conversation(
 	spoken: PackedStringArray,
 	replies: Dictionary[String, String]
 ) -> void:
-	var where: String = _where(conversation, conversation.conversation_id)
+	var where: String = location_of(conversation, conversation.conversation_id)
 	if ShantyRunner.has_cycle(conversation):
 		issues.append(
 			ShantyLintIssue.error(
@@ -264,5 +275,5 @@ static func _require_key(
 
 
 ## A resource's file when it has one, else its id.
-static func _where(resource: Resource, id: StringName) -> String:
+static func location_of(resource: Resource, id: StringName) -> String:
 	return resource.resource_path if not resource.resource_path.is_empty() else String(id)

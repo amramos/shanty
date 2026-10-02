@@ -175,7 +175,7 @@ func is_dirty() -> bool:
 
 
 func lint() -> Array[ShantyLintIssue]:
-	return ShantyLint.check(document, config, speakers, conversations, scenes)
+	return ShantyLint.check(document, config, speakers, conversations, scenes, triggers)
 
 
 ## Lints, refuses on an error or a stale file, then writes the CSV and every
