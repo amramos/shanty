@@ -8,6 +8,12 @@ extends CutsceneStep
 @export var conversation: ConversationDefinition = null
 
 
+## A conversation that can loop is refused before the scene starts: skipping
+## walks it in one synchronous loop, which a cycle would never leave.
+func is_well_formed() -> bool:
+	return not ShantyRunner.has_cycle(conversation)
+
+
 func begin(player: CutscenePlayer) -> void:
 	player.say(conversation, completed.emit)
 

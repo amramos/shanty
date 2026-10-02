@@ -25,7 +25,9 @@ var _choices_taken: Dictionary[String, int] = {}
 
 ## True when following lines and replies from any line can come back to it. A
 ## conversation is short and one level deep by design, so a loop is authoring
-## error; tests run this over every authored conversation.
+## error, and `start()` refuses one. Deliberately conservative: a line with
+## conditions may be passed over, so it also leads to the line after it -- a
+## jump back that only loops once a gate fails is still a loop.
 static func has_cycle(conversation: ConversationDefinition) -> bool:
 	if conversation == null:
 		return false
@@ -54,8 +56,9 @@ static func index_of_label(conversation: ConversationDefinition, label: StringNa
 static func _successors(conversation: ConversationDefinition, index: int) -> Array[int]:
 	var line: DialogueLine = conversation.lines[index]
 	var next: Array[int] = []
-	if line == null or line.choices.is_empty():
+	if line == null or line.choices.is_empty() or not line.conditions.is_empty():
 		next.append(index + 1)
+	if line == null:
 		return next
 	for choice: DialogueChoice in line.choices:
 		if choice == null or choice.jump_label.is_empty():
@@ -81,14 +84,30 @@ static func _visit_finds_cycle(
 
 
 ## Begins `conversation` at its first line whose conditions hold. A null
-## context is a context that holds nothing.
-func start(conversation: ConversationDefinition, context: ShantyContext) -> void:
-	_conversation = conversation
+## context is a context that holds nothing. **A conversation that can loop
+## (`has_cycle()`) is refused**: an error naming it, false, and a runner that is
+## already finished, having collected nothing -- a skip walks a conversation in
+## one synchronous loop, so a cycle would never end.
+func start(conversation: ConversationDefinition, context: ShantyContext) -> bool:
 	_context = context if context != null else ShantyContext.new()
 	_effects.clear()
 	_choices_taken.clear()
 	_index = 0
+	if has_cycle(conversation):
+		push_error(
+			(
+				(
+					"ShantyRunner: refusing conversation '%s': a reply or a gated line"
+					+ " leads back to an earlier line."
+				)
+				% conversation.conversation_id
+			)
+		)
+		_conversation = null
+		return false
+	_conversation = conversation
 	_enter_from(0)
+	return true
 
 
 ## The line being shown, or null once the conversation is over.

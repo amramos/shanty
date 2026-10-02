@@ -24,6 +24,11 @@ for writers arrives in 0.2.0; until then everything is authored as `.tres` resou
   collects what each line and reply asks the host to do; skipping a conversation collects exactly
   what playing it would, and never answers a question for the reader. `ShantySelector` picks the
   scene a trigger plays, or none. Neither touches a node.
+- **A conversation that can loop is refused.** A reply that jumps back to an earlier line — or a
+  gated line that, once it fails, falls through to one that does — is authoring error:
+  `ShantyRunner.start()` refuses it with an error naming the conversation and returns `false`, and
+  the cutscene player refuses a scene holding one before it starts, exactly as it refuses an
+  unbuilt step. A skip walks a conversation in one go, so a loop would never end.
 - **Four host interfaces.** A context, conditions, effects and a speaker provider: the host subclasses
   them, and Shanty never applies an effect or reads the host's state itself.
 - **The dialogue bar** (`DialogueView`): a portrait, a name plate and a line typing out at the reader's

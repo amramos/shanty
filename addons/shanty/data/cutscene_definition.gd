@@ -21,9 +21,10 @@ extends Resource
 
 
 ## True when every step is one this version of Shanty builds
-## (CutsceneStep.is_built()). CutscenePlayer refuses a scene that is not.
+## (CutsceneStep.is_built()) and none holds data it cannot play safely
+## (CutsceneStep.is_well_formed()). CutscenePlayer refuses a scene that is not.
 func is_playable() -> bool:
 	for step: CutsceneStep in steps:
-		if step != null and not step.is_built():
+		if step != null and not (step.is_built() and step.is_well_formed()):
 			return false
 	return true

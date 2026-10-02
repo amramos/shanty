@@ -32,9 +32,11 @@ extends CanvasLayer
 ## its theme changes; the dim keeps `DIM_ALPHA` of it. A theme that declares none
 ## leaves them black.
 ##
-## **A scene holding a step this version does not build is refused whole**
-## (CutsceneStep.is_built()): an error, then `finished` at once with an empty
-## record naming no scene, so the boundary is released and nothing is recorded.
+## **A scene holding a step this version does not build, or a conversation that
+## can loop, is refused whole** (CutsceneDefinition.is_playable()): an error,
+## then `finished` at once with an empty record naming no scene -- or
+## `replay_finished`, in a replay -- so the boundary is released and nothing is
+## recorded.
 ##
 ## Pausable on purpose: a host's pause menu freezes the scene under it rather
 ## than cancelling it, because the typewriter, the fades and the hold all stop
@@ -275,7 +277,15 @@ func _start(
 	_reading_again.text = tr(READING_AGAIN_KEY)
 	_reading_again.visible = _replay != null
 	if scene == null or not scene.is_playable():
-		push_error("CutscenePlayer: refusing a scene with a step this version does not build.")
+		push_error(
+			(
+				(
+					"CutscenePlayer: refusing scene '%s': a step this version does not build,"
+					+ " or a conversation that loops."
+				)
+				% (scene.scene_id if scene != null else &"")
+			)
+		)
 		_finish_refused()
 		return
 	_running = true
@@ -333,6 +343,7 @@ func _finish() -> void:
 
 func _finish_refused() -> void:
 	_running = false
+	_reading_again.hide()
 	if _replay != null:
 		replay_finished.emit()
 		return

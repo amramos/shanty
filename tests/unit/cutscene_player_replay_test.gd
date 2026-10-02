@@ -16,6 +16,21 @@ class Grant:
 	extends ShantyEffect
 
 
+## Holds for its first `limit` evaluations, then never again, counting each.
+## On a looping conversation a skip that never ends would evaluate it without
+## end; past the limit every gated line fails and the walk falls off the end, so
+## a regression fails on the count instead of hanging the suite.
+class CountingCondition:
+	extends ShantyCondition
+
+	var evaluations: int = 0
+	var limit: int = 200
+
+	func evaluate(_context: ShantyContext) -> bool:
+		evaluations += 1
+		return evaluations <= limit
+
+
 class CastProvider:
 	extends ShantySpeakerProvider
 
@@ -236,3 +251,71 @@ func test_stopping_a_replay_ends_it_as_a_replay_and_only_a_replay() -> void:
 	await wait_process_frames(2)
 	_player.stop_replay()
 	assert_true(_player.is_running(), "a first playing has no such exit")
+
+
+## "TOP" then "AGAIN", whose only reply jumps back to "TOP"; both lines are gated
+## on `counter`. The record answers "AGAIN" with that backward reply.
+func _looping_scene(counter: CountingCondition) -> CutsceneDefinition:
+	var top := DialogueLine.new()
+	top.label = &"top"
+	top.text_key = "TOP"
+	top.conditions.append(counter)
+	var again := DialogueLine.new()
+	again.text_key = "AGAIN"
+	again.conditions.append(counter)
+	var back := DialogueChoice.new()
+	back.text_key = "BACK"
+	back.jump_label = &"top"
+	again.choices.append(back)
+	var conversation := ConversationDefinition.new()
+	conversation.conversation_id = &"looping"
+	conversation.lines = [top, again] as Array[DialogueLine]
+	var say := SayStep.new()
+	say.conversation = conversation
+	var scene := CutsceneDefinition.new()
+	scene.scene_id = &"looping_scene"
+	scene.steps.append(say)
+	return scene
+
+
+func _looping_record() -> PlayedSceneRecord:
+	var record := PlayedSceneRecord.new()
+	record.scene_id = &"looping_scene"
+	record.choices[PlayedSceneRecord.choice_key(&"looping", "AGAIN")] = 0
+	return record
+
+
+func test_a_replay_of_a_looping_conversation_is_refused_before_it_starts() -> void:
+	var counter := CountingCondition.new()
+	_player.play_replay(
+		_looping_scene(counter), _looping_record(), null, CastProvider.new(), _settings()
+	)
+
+	assert_push_error("loops")
+	assert_true(_replayed, "replay_finished at once, inside play_replay()")
+	assert_false(_player.is_running())
+	assert_eq(counter.evaluations, 0, "no line of it was ever reached")
+	assert_false(
+		(_player.find_child("ReadingAgain", true, false) as Label).visible,
+		"and it wears no mark once refused"
+	)
+	assert_eq(_finished_count, 0)
+
+
+func test_a_skipped_replay_of_a_backward_reply_ends() -> void:
+	# Straight to the conversation layer, past the player's own refusal: the
+	# runner must refuse the loop by itself, or the skip's walk never ends.
+	var counter := CountingCondition.new()
+	var scene: CutsceneDefinition = _looping_scene(counter)
+	var conversation: ConversationDefinition = (scene.steps[0] as SayStep).conversation
+	var say := ShantySay.new(_player.dialogue_view(), null, _looping_record())
+	say.skipping = true
+	var done: Array[bool] = [false]
+
+	say.skip_say(conversation, func() -> void: done[0] = true)
+	say.detach()
+
+	assert_push_error("looping")
+	assert_true(done[0], "the skip ended, synchronously")
+	assert_lt(counter.evaluations, counter.limit, "and never walked the loop")
+	assert_eq(say.effects.size(), 0)

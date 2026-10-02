@@ -32,6 +32,13 @@ func is_built() -> bool:
 	return true
 
 
+## False for a step whose authored data cannot be played safely -- SayStep's
+## conversation that loops (ShantyRunner.has_cycle()). CutscenePlayer refuses a
+## whole scene that holds one, exactly as it refuses an unbuilt step.
+func is_well_formed() -> bool:
+	return true
+
+
 ## Puts the step straight into its end state on `player` and emits `completed`.
 ## A step that owes the player a decision (a choice) may wait for it first.
 func skip_to_end(player: CutscenePlayer) -> void:

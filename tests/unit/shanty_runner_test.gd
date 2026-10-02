@@ -252,6 +252,40 @@ func test_a_backward_jump_is_reported_as_a_cycle() -> void:
 	assert_false(ShantyRunner.has_cycle(null))
 
 
+func test_a_jump_back_that_loops_only_once_a_gate_fails_is_a_cycle() -> void:
+	# 0 jumps to the gated line 2; while it fails the runner falls through to 3,
+	# which jumps back to 0 -- a loop no reply edge alone shows.
+	var opener: DialogueLine = _line("opener", &"top")
+	opener.choices.append(_choice("on", &"gated"))
+	var gated: DialogueLine = _line("gated", &"gated")
+	gated.conditions.append(NeverCondition.new())
+	gated.choices.append(_choice("out", &"end"))
+	var again: DialogueLine = _line("again")
+	again.choices.append(_choice("back", &"top"))
+	var conversation: ConversationDefinition = _conversation(
+		[opener, _line("unreached"), gated, again, _line("end", &"end")]
+	)
+
+	assert_true(ShantyRunner.has_cycle(conversation))
+
+
+func test_start_refuses_a_conversation_that_loops() -> void:
+	var question: DialogueLine = _line("again?")
+	question.choices.append(_choice("yes", &"top"))
+	var conversation: ConversationDefinition = _conversation([_line("top", &"top"), question])
+	conversation.conversation_id = &"looping"
+	var runner := ShantyRunner.new()
+
+	var started: bool = runner.start(conversation, null)
+
+	assert_push_error("looping")
+	assert_false(started, "refused")
+	assert_true(runner.is_finished(), "a refused conversation is already over")
+	assert_true(runner.skip_to_end(), "so a skip has nothing to walk")
+	assert_eq(runner.collected_effects().size(), 0, "and nothing was collected")
+	assert_true(runner.start(_branching(), null), "an acyclic conversation starts")
+
+
 func test_index_of_label_finds_the_labelled_line() -> void:
 	var conversation: ConversationDefinition = _branching()
 
