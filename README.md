@@ -18,11 +18,12 @@ folder and nothing else.
 godot --headless --import
 godot --headless -s addons/gut/gut_cmdln.gd -gexit -gconfig=.gutconfig.json
 python tools/manifest.py --check
+python -m unittest discover -s tools -p "*_test.py"
 ```
 
 `addons/gut/` is [GUT](https://github.com/bitwes/Gut) 9.7.1 under its own licence, bundled for the
-tests only. CI (`.github/workflows/ci.yml`) runs the tests, `gdformat --check`, `gdlint` and the
-manifest check on every push and pull request, and holds a `vX.Y.Z` tag to `plugin.cfg`'s version
-and the changelog.
+tests only. CI (`.github/workflows/ci.yml`) runs the tests, `gdformat --check`, `gdlint`, the
+tools' own tests and the manifest check on every push and pull request, and holds a `vX.Y.Z` tag
+to `plugin.cfg`'s version and the changelog.
 
 MIT licensed — see [LICENSE](LICENSE).

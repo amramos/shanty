@@ -8,7 +8,8 @@ It leaves out what Godot writes on import -- `*.uid`, `*.import`,
 Paths are relative to addons/shanty/ and use forward slashes.
 
     python tools/manifest.py           rewrite the manifest
-    python tools/manifest.py --check   exit 1, naming each difference, if it is stale
+    python tools/manifest.py --check   exit 1, naming each difference, unless the file
+                                       is byte-for-byte what the generator writes
 
 Standard library only.
 """
@@ -54,13 +55,58 @@ def build(addon: pathlib.Path = ADDON) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _entries(text: str) -> dict[str, str]:
-    entries: dict[str, str] = {}
-    for line in text.splitlines():
-        if line.strip():
+def _parse(text: str) -> list[tuple[str, str]]:
+    """(path, digest) for every line, in file order, duplicates and all."""
+    entries: list[tuple[str, str]] = []
+    for line in text.split("\n"):
+        if line:
             digest, _, path = line.partition("  ")
-            entries[path] = digest
+            entries.append((path, digest))
     return entries
+
+
+def compare(recorded: bytes, expected: bytes) -> list[str]:
+    """Every way `recorded` differs from `expected`; empty only when the bytes are equal.
+
+    The file must be exactly what the generator writes, so anything that would
+    pass a looser reading -- reordered, duplicated or blank lines, CR line
+    endings, a missing final newline -- is still a difference, named here.
+    """
+    if recorded == expected:
+        return []
+    problems: list[str] = []
+    try:
+        recorded_text = recorded.decode("utf-8")
+    except UnicodeDecodeError:
+        return [f"{MANIFEST_NAME} is not UTF-8"]
+    if "\r" in recorded_text:
+        problems.append(f"{MANIFEST_NAME} has CR line endings; it must be LF only")
+        recorded_text = recorded_text.replace("\r", "")
+    rows = _parse(recorded_text)
+    wanted = _parse(expected.decode("utf-8"))
+    recorded_digests: dict[str, str] = {}
+    for path, digest in rows:
+        if path in recorded_digests:
+            problems.append(f"duplicate: {path}")
+        recorded_digests[path] = digest
+    wanted_digests = dict(wanted)
+    for path in sorted(set(recorded_digests) | set(wanted_digests)):
+        if path not in wanted_digests:
+            problems.append(f"listed but missing: {path}")
+        elif path not in recorded_digests:
+            problems.append(f"not listed: {path}")
+        elif recorded_digests[path] != wanted_digests[path]:
+            problems.append(f"changed: {path}")
+    if not problems:
+        recorded_order = [path for path, _ in rows]
+        if recorded_order != [path for path, _ in wanted]:
+            problems.append("out of order: entries must be sorted by path")
+    if not problems:
+        problems.append(
+            f"{MANIFEST_NAME} differs from the generated text in whitespace"
+            " (blank lines, separators or the final newline)"
+        )
+    return problems
 
 
 def check(addon: pathlib.Path = ADDON) -> list[str]:
@@ -68,20 +114,7 @@ def check(addon: pathlib.Path = ADDON) -> list[str]:
     manifest = addon / MANIFEST_NAME
     if not manifest.is_file():
         return [f"{MANIFEST_NAME} is missing; run tools/manifest.py"]
-    recorded_text = manifest.read_bytes().decode("utf-8")
-    problems: list[str] = []
-    if "\r" in recorded_text:
-        problems.append(f"{MANIFEST_NAME} has CR line endings; it must be LF only")
-    recorded = _entries(recorded_text)
-    actual = _entries(build(addon))
-    for path in sorted(set(recorded) | set(actual)):
-        if path not in actual:
-            problems.append(f"listed but missing: {path}")
-        elif path not in recorded:
-            problems.append(f"not listed: {path}")
-        elif recorded[path] != actual[path]:
-            problems.append(f"changed: {path}")
-    return problems
+    return compare(manifest.read_bytes(), build(addon).encode("utf-8"))
 
 
 def main(argv: list[str]) -> int:
