@@ -16,6 +16,7 @@ const Toolbar := preload("res://addons/shanty/editor/shanty_toolbar.gd")
 const ListPane := preload("res://addons/shanty/editor/shanty_list_pane.gd")
 const SpeakerForm := preload("res://addons/shanty/editor/shanty_speaker_form.gd")
 const LineTable := preload("res://addons/shanty/editor/shanty_line_table.gd")
+const FilesystemRefresh := preload("res://addons/shanty/editor/shanty_filesystem_refresh.gd")
 const LINT_DELAY: float = 0.4
 const PICK_HINT: String = "Pick a speaker or a conversation on the left, or make one."
 const NO_CONFIG_HINT: String = (
@@ -30,6 +31,7 @@ var _inspected: Resource = null
 var _inspected_owner: Resource = null
 var _lint_timer: Timer = Timer.new()
 var _config_dialog: EditorFileDialog = null
+var _refresh: FilesystemRefresh = null
 var _started: bool = false
 
 @onready var _toolbar: Toolbar = %Toolbar
@@ -175,7 +177,7 @@ func _create_config(path: String) -> void:
 		return
 	ProjectSettings.set_setting(ShantyProjectConfig.SETTING, path)
 	ProjectSettings.save()
-	EditorInterface.get_resource_filesystem().update_file(path)
+	_filesystem().request(PackedStringArray([path]))
 	_open(true)
 	if _model.config != null:
 		EditorInterface.edit_resource(_model.config)
@@ -236,20 +238,21 @@ func _save() -> void:
 		_list.show_model(_model, _selected)
 	if not _in_editor():
 		return
-	var files: EditorFileSystem = EditorInterface.get_resource_filesystem()
-	# Saving a staged resource told the editor about it; it is gone again.
-	for path: String in result.staged_paths:
-		files.update_file(path)
-	if not result.saved:
-		return
-	for path: String in result.resource_paths:
-		files.update_file(path)
-	if not result.csv_path.is_empty():
-		if files.is_scanning() or files.get_file_type(result.csv_path).is_empty():
-			# The editor has not indexed the file yet; its scan imports it.
-			files.scan()
-		else:
-			files.reimport_files(PackedStringArray([result.csv_path]))
+	# Saving a staged resource told the editor about it, saved or not; it is
+	# gone again, and is forgotten before the file that replaced it is read.
+	var paths: PackedStringArray = result.staged_paths.duplicate()
+	if result.saved:
+		paths.append_array(result.resource_paths)
+		if not result.csv_path.is_empty():
+			paths.append(result.csv_path)
+	_filesystem().request(paths)
+
+
+## The pane's one link to the editor's filesystem; editor-only.
+func _filesystem() -> FilesystemRefresh:
+	if _refresh == null:
+		_refresh = FilesystemRefresh.new(EditorInterface.get_resource_filesystem())
+	return _refresh
 
 
 func _say(text: String) -> void:
