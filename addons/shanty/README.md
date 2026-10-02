@@ -22,28 +22,246 @@ Every release carries `MANIFEST.sha256`: the SHA-256 of every file in the addon 
 `.import` files aside, which Godot writes), so you can check that your copy is the release,
 unmodified.
 
-## Author your first scene in ten minutes
+## Run the example (about two minutes)
 
-`example/` holds every file this walkthrough names, finished and playing: open
-`example/example_host.tscn` and run it (F6). What follows builds the same thing from nothing — a
-lighthouse keeper, a visitor, and one question.
+`example/` is a whole host — a lighthouse keeper, a visitor, and one question — with its own
+strings in English and Brazilian Portuguese and no other code.
 
-### 1. Write the words
+1. Open the project. In this repository the example is the main scene: press **F5**. In your own
+   project, open `addons/shanty/example/example_host.tscn` and press **F6** (Run Current Scene).
+2. Press **Play the scene**. The frame goes to the ground colour (black, unless your theme says
+   otherwise), letterbox bars close in, and the dialogue bar docks at the top.
+3. The Keeper's line types out, with *lamp* in the highlight colour. Click, or press `ui_accept`
+   (Enter or Space by default), to finish a line and again to go on. Hold for 0.8 seconds instead
+   to skip the scene: a skip still stops at the question.
+4. The Visitor answers by name — the line spells the Keeper's name with a token, not a word — and
+   the Keeper asks. The bar hands over to the Visitor, whose two replies wait as buttons. Pick one.
+5. The scene fades out and the Output panel prints the record it left, as JSON: the scene id, the
+   ordinal, the reply you took, and the title it played under. The host has applied that reply's
+   one effect, a story flag.
+6. Press **Read it again**. The same scene replays read-only under a *Reading again* caption: your
+   recorded reply is spoken as the Visitor's line, never offered, and nothing is applied again.
 
-Every word a reader sees is a translation key. Add yours to a CSV in Godot's own shape and add the
-CSV to **Project Settings > Localization > Translations**:
+## Make it yours (about thirty minutes the first time)
 
-```csv
-keys,en,pt_BR,_notes
-LAMP_SPEAKER_KEEPER,The Keeper,O Faroleiro,A column whose header starts with _ is ignored
-LAMP_LINE_1,You came back. The [hl]lamp[/hl] has been dark since you left.,…,
-LAMP_LINE_2,"I said I would, {name:keeper}.",…,
-LAMP_LINE_3,"Will you light it tonight, or shall I?",…,
-LAMP_REPLY_A,I will light it.,…,
-LAMP_REPLY_B,You light it. I will watch.,…,
+This builds the example again in your own project, from nothing but the addon: two short scripts
+that give your data meaning, five resources made in the Inspector, and one host script. It reuses
+the example's strings and keys, so nothing needs translating yet; every resource you make has a
+finished twin in `example/` to compare against. Most of the time goes on clicking through the
+Inspector.
+
+Throughout, the Inspector shows each property capitalized — `speaker_id` appears as *Speaker ID*.
+To add to an array property (*Faces*, *Lines*, *Choices*, *Steps*…), expand it, press **Add
+Element**, click the new `<empty>` slot and pick **New** and the type named. Click the new resource
+to open its fields.
+
+### 1. Register the words
+
+Every word a reader sees is a translation key. Godot imports `example/example_strings.csv` into one
+`.translation` file per locale the first time the project opens. In **Project > Project Settings >
+Localization > Translations**, press **Add…** and pick both:
+`addons/shanty/example/example_strings.en.translation` and
+`addons/shanty/example/example_strings.pt_BR.translation`. They also hold the three keys every host
+declares (see [the host contract](#the-host-contract)).
+
+### 2. A condition and an effect
+
+Shanty never reads your state and never changes it. A condition asks your context a question; an
+effect is data your code gives meaning to. Make a folder `res://story/`, and in it two scripts
+(right-click > **Create New > Script…**):
+
+`res://story/story_flag_condition.gd`:
+
+```gdscript
+class_name StoryFlagCondition
+extends ShantyCondition
+
+## Holds while the host's context has `flag` set.
+
+@export var flag: StringName = &""
+
+
+func evaluate(context: ShantyContext) -> bool:
+	return context.has_key(flag)
 ```
 
-Two pieces of markup are the whole authoring contract:
+`res://story/story_flag_effect.gd`:
+
+```gdscript
+class_name StoryFlagEffect
+extends ShantyEffect
+
+## Asks the host to set `flag` to `value`. Pure data: Shanty hands it back in
+## `CutscenePlayer.finished`, and the host decides what it means.
+
+@export var flag: StringName = &""
+@export var value: bool = true
+```
+
+Save both. Their `class_name` is what puts them in the Inspector's **New** menus below.
+
+### 3. Two speakers
+
+Right-click `res://story/` > **Create New > Resource…**, search **SpeakerDefinition**, press
+**Create**, and save it as `keeper.tres`. In the Inspector:
+
+- `speaker_id`: `keeper`
+- `name_key`: `SHANTY_EXAMPLE_SPEAKER_KEEPER`
+- `faces`: one element, **New SpeakerFace**, with `tag` `neutral`. Leave `texture` empty.
+
+Make `visitor.tres` the same way, with `speaker_id` `visitor` and `name_key`
+`SHANTY_EXAMPLE_SPEAKER_VISITOR`. **A missing face texture is never an error:** the bar draws a flat
+plate with the speaker's name instead, so words may arrive before art. (Twins:
+`example/speaker_keeper.tres`, `example/speaker_visitor.tres`.)
+
+### 4. The conversation
+
+Create a **ConversationDefinition** resource and save it as `lamp_conversation.tres`. Set
+`conversation_id` to `my_lamp`, then give `lines` three elements, each **New DialogueLine**:
+
+1. `speaker_id` `keeper`, `face` `neutral`, `text_key` `SHANTY_EXAMPLE_LINE_1`. In `conditions`, add
+   one **New StoryFlagCondition** with `flag` `example_lamp_dark` — the line is said only while that
+   flag is set.
+2. `speaker_id` `visitor`, `face` `neutral`, `text_key` `SHANTY_EXAMPLE_LINE_2`.
+3. `speaker_id` `keeper`, `face` `neutral`, `text_key` `SHANTY_EXAMPLE_LINE_3`, `reply_speaker_id`
+   `visitor`. In `choices`, add two elements, each **New DialogueChoice**:
+   - `text_key` `SHANTY_EXAMPLE_REPLY_A`; in its `effects`, one **New StoryFlagEffect** with `flag`
+     `example_visitor_lit_lamp`.
+   - `text_key` `SHANTY_EXAMPLE_REPLY_B`; in its `effects`, one **New StoryFlagEffect** with `flag`
+     `example_keeper_lit_lamp`.
+
+(Twin: `example/example_conversation.tres`.)
+
+### 5. The scene
+
+Create a **CutsceneDefinition** resource, `lamp_scene.tres`:
+
+- `scene_id`: `my_lamp`
+- `title_key`: `SHANTY_EXAMPLE_TITLE`; `synopsis_key`: `SHANTY_EXAMPLE_SYNOPSIS`; `remembered` on.
+- `steps`: four elements, in this order:
+  1. **New BackdropStep**, `letterbox` on. No texture draws the plain ground colour.
+  2. **New FadeStep**, `to_black` off — a fade in.
+  3. **New SayStep**: drag `lamp_conversation.tres` from the FileSystem dock onto `conversation`.
+  4. **New FadeStep**, left as it is — a fade out.
+
+(Twin: `example/example_scene.tres`.)
+
+### 6. The trigger
+
+Create a **StoryTriggerDefinition** resource, `lamp_trigger.tres`. Set `trigger_id` to `lamp`, and
+give `candidates` one **New StoryCandidate** with `lamp_scene.tres` dragged onto `cutscene`. Leave
+`priority` at 0 and `once` on.
+
+### 7. The host
+
+**Scene > New Scene**, then pick **User Interface** in the Scene dock for a `Control` root.
+Right-click it > **Attach Script…**, set the path to `res://story/story_host.gd`, and replace the
+template with this text:
+
+```gdscript
+extends Control
+
+## Plays `trigger`'s scene when this node is ready, applies what the scene hands
+## back, and keeps the record. Everything here is the host's; Shanty decides
+## nothing about when to play, what an effect means, or what to save.
+
+const PLAYER_SCENE: PackedScene = preload("res://addons/shanty/ui/cutscene_player.tscn")
+const HIGHLIGHT_COLOUR: Color = Color8(237, 161, 43)
+
+## The moment this host plays: res://story/lamp_trigger.tres.
+@export var trigger: StoryTriggerDefinition = null
+## Every speaker a line names: res://story/keeper.tres and res://story/visitor.tres.
+@export var speaker_definitions: Array[SpeakerDefinition] = []
+
+var _context: StoryContext = StoryContext.new()
+var _speakers: StorySpeakers = StorySpeakers.new()
+var _settings: ShantyViewSettings = ShantyViewSettings.new()
+## What has played, for `once` candidates. A real game saves `to_dictionary()`.
+var _played: Array[PlayedSceneRecord] = []
+
+
+## The host's world, as Shanty asks about it: a dictionary of flags.
+class StoryContext:
+	extends ShantyContext
+
+	var flags: Dictionary[StringName, bool] = {}
+
+	func has_key(id: StringName) -> bool:
+		return flags.get(id, false)
+
+	func playthrough_ordinal() -> int:
+		return 1
+
+
+## Turns a line's `speaker_id` into the name and faces the bar draws.
+class StorySpeakers:
+	extends ShantySpeakerProvider
+
+	var definitions: Dictionary[StringName, SpeakerDefinition] = {}
+
+	func resolve(speaker_id: StringName) -> ShantySpeaker:
+		if definitions.has(speaker_id):
+			return ShantySpeaker.from_definition(definitions[speaker_id])
+		return super.resolve(speaker_id)
+
+
+func _ready() -> void:
+	for definition: SpeakerDefinition in speaker_definitions:
+		_speakers.definitions[definition.speaker_id] = definition
+	ShantyText.set_highlight_colour(HIGHLIGHT_COLOUR)
+	# The first line is gated on this flag (StoryFlagCondition).
+	_context.flags[&"example_lamp_dark"] = true
+	play_moment(trigger)
+
+
+## Asks the selector what `moment` plays, and plays it on a fresh player.
+func play_moment(moment: StoryTriggerDefinition) -> void:
+	var candidate: StoryCandidate = ShantySelector.select(moment, _context, _played)
+	if candidate == null:
+		return  # Nothing to say here.
+	var player: CutscenePlayer = PLAYER_SCENE.instantiate()
+	add_child(player)
+	player.finished.connect(_on_finished.bind(player), CONNECT_ONE_SHOT)
+	player.play(candidate.cutscene, _context, _speakers, _settings)
+
+
+func _on_finished(
+	record: PlayedSceneRecord, effects: Array[ShantyEffect], player: CutscenePlayer
+) -> void:
+	for effect: ShantyEffect in effects:
+		var flag_effect: StoryFlagEffect = effect as StoryFlagEffect
+		if flag_effect != null:
+			_context.flags[flag_effect.flag] = flag_effect.value
+	# A refused scene finishes with an empty record: nothing played.
+	if not record.scene_id.is_empty():
+		_played.append(record)
+	print("Played '", record.scene_id, "'. Flags: ", _context.flags)
+	player.queue_free()
+```
+
+Select the root node. In the Inspector, drag `lamp_trigger.tres` onto `trigger`, and give
+`speaker_definitions` two elements with `keeper.tres` and `visitor.tres` dragged onto them. Save the
+scene as `res://story/story_host.tscn`.
+
+### 8. Play it
+
+Press **F6**. The scene plays as the example's did, without the buttons, and the Output panel ends
+with `Played 'my_lamp'.` and the flags your reply set. Because the candidate is `once`, a second
+`play_moment(trigger)` would now play nothing.
+
+From here:
+
+- **Your own words:** copy `example_strings.csv` into your project, change the keys and the text,
+  register its translations as in step 1, and put the new keys on your resources.
+- **A replay:** keep the record, then call `play_replay(scene, record, context, provider, settings)`
+  on a fresh player and wait for `replay_finished` instead of `finished`. `example/example_host.gd`
+  does both.
+- **A save:** store `record.to_dictionary()`, and read it back with
+  `PlayedSceneRecord.from_dictionary()`.
+
+## Authoring reference
+
+**Markup.** Two pieces are the whole authoring contract:
 
 - **`[hl]…[/hl]`** draws its words in your highlight colour (`ShantyText.set_highlight_colour()`).
   Every other `[` a translator types is drawn as typed — a translation can never inject BBCode.
@@ -51,36 +269,26 @@ Two pieces of markup are the whole authoring contract:
   Rename a character, or hide their name until the reader learns it, and every line, reply, title
   and synopsis that names them follows — without touching a translation.
 
-### 2. Make a speaker
+**A speaker's faces.** A line names a face tag; an unknown tag falls back to the first face.
 
-A `SpeakerDefinition` (`example/speaker_keeper.tres`): a `speaker_id` lines refer to, a `name_key`,
-and `faces` — one `SpeakerFace` per emotion tag (`neutral`, `wary`…), each with a texture. A line
-names a tag; an unknown tag falls back to the first face. **A missing texture is never an error:**
-the bar draws a flat plate with the speaker's name instead, so words may arrive before art.
+**A line** (`DialogueLine`) has a `speaker_id`, a `face`, a `text_key`, and optionally:
 
-Your speaker provider (step 5) turns a `speaker_id` into what the bar draws. The example's provider
-reads its two definitions and paints a placeholder face in code.
-
-### 3. Write the conversation
-
-A `ConversationDefinition` (`example/example_conversation.tres`) is an ordered list of
-`DialogueLine`s. Each line has a `speaker_id`, a `face`, a `text_key`, and optionally:
-
+- **`label`** — a name a reply's `jump_label` can jump to.
 - **`conditions`** — every one must hold or the line is skipped, and so are its effects.
 - **`effects`** — handed back to you when the line is shown (or skipped past while holding).
 - **`choices`** — up to three `DialogueChoice` replies, each with a `text_key`, `effects` returned if
-  chosen, and an optional `jump_label` naming another line's `label`. Replies are one level deep.
+  chosen, and an optional `jump_label` naming another line's `label`. Replies are one level deep,
+  and no path through them may come back to a line already passed: a conversation that can loop is
+  refused.
 - **`reply_speaker_id`** — who answers this line's replies. Once the question has been read, the bar
   hands over to that speaker: their face and name, a short placeholder where the line was, and the
   replies as buttons. Empty uses the host's default (`ShantyViewSettings.reply_speaker_id`); empty
   there too keeps the asker on the bar with the buttons beneath.
 - **`voice`** — an optional recorded line.
 
-### 4. Make the scene
-
-A `CutsceneDefinition` (`example/example_scene.tres`) is a `scene_id` and a list of steps:
-`BackdropStep` (a still, optional letterbox), `FadeStep` (in or out), `SayStep` (a conversation),
-`PanStep`, `WaitStep` and `MusicStep`. The example's is backdrop → fade in → say → fade out. Then:
+**A scene** (`CutsceneDefinition`) is a `scene_id` and a list of steps: `BackdropStep` (a still,
+optional letterbox), `FadeStep` (in or out), `SayStep` (a conversation), `PanStep`, `WaitStep` and
+`MusicStep`. Then:
 
 - **`skippable`** (default on) — holding the advance press skips to the end. A skip returns every
   effect playing would have, and still stops to ask any question it reaches.
@@ -89,42 +297,13 @@ A `CutsceneDefinition` (`example/example_scene.tres`) is a `scene_id` and a list
   small or repeating beat never crowds it).
 - **`synopsis_key`** — an optional one-sentence summary for that list; it may use `{name:<id>}`.
 
-### 5. Give your game a trigger
+**A trigger** (`StoryTriggerDefinition`) names one moment your game recognises (`chapter_start`,
+`door_opened`…) and lists `StoryCandidate`s, each a scene with a `priority`, `conditions`, and
+**`once`** (default on): a `once` candidate is passed over when your played records already hold its
+scene. Shanty never decides when a moment happens — your code does, then asks the selector.
 
-A `StoryTriggerDefinition` names one moment your game recognises (`chapter_start`, `door_opened`…)
-and lists `StoryCandidate`s, each a scene with a `priority`, `conditions`, and **`once`** (default
-on): a `once` candidate is passed over when your played records already hold its scene. Shanty never
-decides when a moment happens — your code does, then asks the selector:
-
-```gdscript
-const PLAYER_SCENE: PackedScene = preload("res://addons/shanty/ui/cutscene_player.tscn")
-
-
-func on_moment(trigger: StoryTriggerDefinition) -> void:
-	var candidate: StoryCandidate = ShantySelector.select(trigger, context, played_records)
-	if candidate == null:
-		return  # Nothing to say here.
-	var player: CutscenePlayer = PLAYER_SCENE.instantiate()
-	add_child(player)
-	player.finished.connect(_on_finished.bind(player), CONNECT_ONE_SHOT)
-	player.play(candidate.cutscene, context, speakers, settings)
-
-
-func _on_finished(
-	record: PlayedSceneRecord, effects: Array[ShantyEffect], player: CutscenePlayer
-) -> void:
-	for effect: ShantyEffect in effects:
-		apply(effect)  # Yours: Shanty never applies an effect.
-	played_records.append(record)  # Persist record.to_dictionary() in your save.
-	player.queue_free()
-```
-
-### 6. Play it, and play it again
-
-`finished` fires once, at the end — never at the start — so a scene abandoned halfway plays again.
-To replay a record read-only, `play_replay(scene, record, context, speakers, settings)` on a fresh
-player and wait for `replay_finished`: each reply is spoken from the record rather than offered,
-and nothing is returned. `example/example_host.gd` does both, and applies its one effect type.
+**Playing.** `finished` fires once, at the end — never at the start — so a scene abandoned halfway
+plays again.
 
 ## The host contract
 
@@ -198,6 +377,10 @@ Which locales your game requires is your rule, not Shanty's.
   not played when `once`; the first authored wins a tie; nothing qualifying is null.
 - A scene holding a step this version does not build (`AnimateStep`, `VideoStep`) is refused before
   it starts: an error, then `finished` at once with an empty record and no effects.
+- A conversation that can loop — a reply jumping back to an earlier line, or a gated line that,
+  once it fails, falls through to one that does — is refused: `ShantyRunner.start()` returns
+  `false` with an error naming it, and a scene holding one is refused like an unbuilt step (in a
+  replay, `replay_finished` at once).
 - A pan moves in whole art pixels; a still narrower than the frame is centred on the ground colour.
 - Whatever a `MusicStep` changed is put back when the scene ends — finished, skipped or freed.
 - A replay is read-only and ends on `replay_finished`, never `finished`; `stop_replay()` closes one
@@ -225,6 +408,7 @@ godot --headless --import
 godot --headless -s addons/gut/gut_cmdln.gd -gexit -gconfig=.gutconfig.json
 python tools/manifest.py          # rewrite MANIFEST.sha256 after changing the addon
 python tools/manifest.py --check  # what CI runs
+python -m unittest discover -s tools -p "*_test.py"  # the tools' own tests
 ```
 
 Scripts are fully typed and kept `gdformat`/`gdlint` clean. A release bumps `plugin.cfg`'s

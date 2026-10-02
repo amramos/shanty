@@ -5,8 +5,8 @@ catalogue under stable keys, structure in `.tres` resources, a pure runner that 
 game should do, and a `CanvasLayer` player that presents it.
 
 **The addon is [`addons/shanty/`](addons/shanty/) — read its [README](addons/shanty/README.md)** for
-installation, a ten-minute tutorial on the bundled lighthouse example, and the host contract. What
-changed in each version is in its [CHANGELOG](addons/shanty/CHANGELOG.md).
+installation, how to run the bundled lighthouse example and then build it again yourself, and the
+host contract. What changed in each version is in its [CHANGELOG](addons/shanty/CHANGELOG.md).
 
 This repository is a Godot 4.7 project that opens straight into the example (run it with F5). To
 install Shanty, copy `addons/shanty/` into your project; a release's source archive contains that
