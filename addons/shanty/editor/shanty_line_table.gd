@@ -2,8 +2,9 @@
 extends VBoxContainer
 
 ## The conversation editor: its key prefix, a header naming the two locales on
-## show, one row per line, and + Line. Each row binds straight to the model;
-## the table only rebuilds when lines or replies are added or removed.
+## show, one row per line (each with Insert after and up/down), and + Line.
+## Each row binds straight to the model; the table only rebuilds when lines or
+## replies are added, removed or moved.
 
 signal inspect_requested(resource: Resource, owner: Resource)
 
@@ -105,12 +106,6 @@ func _column_header() -> HBoxContainer:
 
 
 func _on_add_line() -> void:
-	var speaker: StringName = &""
-	var face: StringName = &""
-	if not _conversation.lines.is_empty() and _conversation.lines[-1] != null:
-		speaker = _conversation.lines[-1].speaker_id
-		face = _conversation.lines[-1].face
-	elif not _model.speakers.is_empty():
-		speaker = _model.speakers[0].speaker_id
-	if ShantyConversationEdits.add_line(_model, _conversation, speaker, face) != null:
+	var last: int = _conversation.lines.size() - 1
+	if ShantyConversationEdits.insert_line_after(_model, _conversation, last) != null:
 		rebuild()

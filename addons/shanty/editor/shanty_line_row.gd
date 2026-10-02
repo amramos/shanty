@@ -3,7 +3,8 @@ extends VBoxContainer
 
 ## One line of the table: number, speaker, face, source text with its key and
 ## the key's state, target text, flag toggles and notes; under it the line's
-## label, reply speaker, conditions and effects; under those its replies.
+## label, reply speaker, conditions and effects, and Insert after, up, down and
+## remove; under those its replies.
 
 signal structure_changed
 signal inspect_requested(resource: Resource, owner: Resource)
@@ -111,9 +112,7 @@ func _speaker_picker() -> OptionButton:
 	picker.item_selected.connect(
 		func(at: int) -> void:
 			var id: StringName = StringName(picker.get_item_text(at))
-			ShantyConversationEdits.edit(_model, _conversation, _line, &"speaker_id", id)
-			if not ShantySpeakerEdits.face_tags(_model, id).has(String(_line.face)):
-				ShantyConversationEdits.edit(_model, _conversation, _line, &"face", &"")
+			ShantyConversationEdits.set_speaker(_model, _conversation, _line, id)
 			_fill_faces()
 	)
 	return picker
@@ -176,15 +175,42 @@ func _detail_row() -> HBoxContainer:
 	row.add_child(choice)
 	if not _line.choices.is_empty():
 		row.add_child(_reply_speaker_picker())
-	var remove := Button.new()
-	remove.text = "Remove line"
-	remove.pressed.connect(
-		func() -> void:
-			ShantyConversationEdits.remove_line(_model, _conversation, _index)
-			structure_changed.emit()
-	)
-	row.add_child(remove)
+	_add_line_actions(row)
 	return row
+
+
+## Insert after, up, down and remove: each changes the order or the set of
+## lines, never a key, and asks the table to rebuild.
+func _add_line_actions(row: HBoxContainer) -> void:
+	var last: int = _conversation.lines.size() - 1
+	var actions: Array[Array] = [
+		["Insert after", "A new line after this one", false, _on_insert_after],
+		["↑", "Move this line up", _index == 0, _on_move.bind(-1)],
+		["↓", "Move this line down", _index == last, _on_move.bind(1)],
+		["Remove line", "Remove this line and its unused rows", false, _on_remove],
+	]
+	for action: Array in actions:
+		var button := Button.new()
+		button.text = action[0]
+		button.tooltip_text = action[1]
+		button.disabled = action[2]
+		button.pressed.connect(action[3])
+		row.add_child(button)
+
+
+func _on_insert_after() -> void:
+	if ShantyConversationEdits.insert_line_after(_model, _conversation, _index) != null:
+		structure_changed.emit()
+
+
+func _on_move(step: int) -> void:
+	if ShantyConversationEdits.move_line(_model, _conversation, _index, _index + step):
+		structure_changed.emit()
+
+
+func _on_remove() -> void:
+	ShantyConversationEdits.remove_line(_model, _conversation, _index)
+	structure_changed.emit()
 
 
 ## Who answers this line's replies; the first item leaves it to the host.

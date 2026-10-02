@@ -127,9 +127,9 @@ Create a **ConversationDefinition** resource and save it as `lamp_conversation.t
 2. `speaker_id` `visitor`, `face` `neutral`, `text_key` `SHANTY_EXAMPLE_LINE_2`.
 3. `speaker_id` `keeper`, `face` `neutral`, `text_key` `SHANTY_EXAMPLE_LINE_3`, `reply_speaker_id`
    `visitor`. In `choices`, add two elements, each **New DialogueChoice**:
-   - `text_key` `SHANTY_EXAMPLE_REPLY_A`; in its `effects`, one **New StoryFlagEffect** with `flag`
+   - `text_key` `SHANTY_EXAMPLE_LINE_3_A`; in its `effects`, one **New StoryFlagEffect** with `flag`
      `example_visitor_lit_lamp`.
-   - `text_key` `SHANTY_EXAMPLE_REPLY_B`; in its `effects`, one **New StoryFlagEffect** with `flag`
+   - `text_key` `SHANTY_EXAMPLE_LINE_3_B`; in its `effects`, one **New StoryFlagEffect** with `flag`
      `example_keeper_lit_lamp`.
 
 (Twin: `example/example_conversation.tres`.)

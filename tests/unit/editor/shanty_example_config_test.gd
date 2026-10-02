@@ -69,3 +69,35 @@ func test_a_new_line_in_the_example_follows_its_own_numbering() -> void:
 	assert_eq(line.text_key, "SHANTY_EXAMPLE_LINE_4")
 	# Never saved: the edit is dropped with the model, and the cached resource put back.
 	ShantyConversationEdits.remove_line(model, conversation, 3)
+
+
+func test_the_example_scheme_names_its_own_reply_keys() -> void:
+	var model: ShantyEditorModel = _model()
+	var conversation: ConversationDefinition = model.conversations[0]
+	var asking: DialogueLine = conversation.lines[2]
+	var existing: PackedStringArray = []
+	for choice: DialogueChoice in asking.choices:
+		existing.append(choice.text_key)
+	var scheme: ShantyKeyScheme = model.config.scheme()
+
+	assert_eq(
+		existing,
+		PackedStringArray(
+			[
+				scheme.reply_key.replace("{LINE}", asking.text_key).replace("{LETTER}", "A"),
+				scheme.reply_key.replace("{LINE}", asking.text_key).replace("{LETTER}", "B"),
+			]
+		),
+		"the example's replies are keyed by its own scheme"
+	)
+	var reply: DialogueChoice = ShantyConversationEdits.add_choice(model, conversation, asking)
+	assert_eq(reply.text_key, "SHANTY_EXAMPLE_LINE_3_C")
+	var first: DialogueChoice = ShantyConversationEdits.add_choice(
+		model, conversation, conversation.lines[1]
+	)
+	assert_eq(first.text_key, "SHANTY_EXAMPLE_LINE_2_A")
+	# Never saved: the cached resource is put back as it was.
+	ShantyConversationEdits.remove_choice(model, conversation, asking, 2)
+	ShantyConversationEdits.remove_choice(model, conversation, conversation.lines[1], 0)
+	assert_eq(asking.choices.size(), 2)
+	assert_eq(conversation.lines[1].choices.size(), 0)

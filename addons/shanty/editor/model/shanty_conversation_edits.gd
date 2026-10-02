@@ -99,6 +99,60 @@ static func add_line(
 	return line
 
 
+## A new line straight after line `index` (at the start for -1), spoken by that
+## line's speaker with its face, or by the first speaker when there is no line
+## to follow. Its key is the next free number, wherever it sits: no other key
+## changes. Null for an index outside the conversation.
+static func insert_line_after(
+	model: ShantyEditorModel, conversation: ConversationDefinition, index: int
+) -> DialogueLine:
+	if index < -1 or index >= conversation.lines.size():
+		return null
+	var speaker: StringName = &""
+	var face: StringName = &""
+	var anchor: DialogueLine = conversation.lines[index] if index >= 0 else null
+	if anchor != null:
+		speaker = anchor.speaker_id
+		face = anchor.face
+	elif not model.speakers.is_empty():
+		speaker = model.speakers[0].speaker_id
+	var line: DialogueLine = add_line(model, conversation, speaker, face, index)
+	if line != null and index < 0:
+		move_line(model, conversation, conversation.lines.size() - 1, 0)
+	return line
+
+
+## Moves line `from` to position `to`. Order only: every key, and every CSV
+## row, stays as it was. False for an index outside the conversation.
+static func move_line(
+	model: ShantyEditorModel, conversation: ConversationDefinition, from: int, to: int
+) -> bool:
+	var size: int = conversation.lines.size()
+	if from < 0 or from >= size or to < 0 or to >= size or from == to:
+		return false
+	var lines: Array[DialogueLine] = conversation.lines
+	var line: DialogueLine = lines[from]
+	lines.remove_at(from)
+	lines.insert(to, line)
+	conversation.lines = lines
+	model.touch(conversation)
+	return true
+
+
+## Gives `line` another speaker, dropping a face the new speaker does not have
+## so the line never names a face nobody draws.
+static func set_speaker(
+	model: ShantyEditorModel,
+	conversation: ConversationDefinition,
+	line: DialogueLine,
+	speaker_id: StringName
+) -> void:
+	line.speaker_id = speaker_id
+	if not ShantySpeakerEdits.face_tags(model, speaker_id).has(String(line.face)):
+		line.face = &""
+	model.touch(conversation)
+
+
 ## Removes line `index`, and the rows of its keys that nothing else names.
 static func remove_line(
 	model: ShantyEditorModel, conversation: ConversationDefinition, index: int

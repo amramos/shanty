@@ -14,6 +14,7 @@ forbidden_words = Dictionary[String, PackedStringArray]({
 [sub_resource type="Resource" id="Resource_scheme"]
 script = ExtResource("3_scheme")
 conversation_prefix = "SHANTY_EXAMPLE_{ID}"
+reply_key = "{LINE}_{LETTER}"
 speaker_name_key = "SHANTY_EXAMPLE_SPEAKER_{ID}"
 scene_title_key = "SHANTY_EXAMPLE_TITLE_{ID}"
 scene_synopsis_key = "SHANTY_EXAMPLE_SYNOPSIS_{ID}"
