@@ -62,9 +62,11 @@ for writers arrives in 0.2.0; until then everything is authored as `.tres` resou
   player is ready and whenever its theme changes; the dim keeps 0.6 of it. Without one they are
   black, which is also all `cutscene_player.tscn` itself holds.
 - **`ShantyHostContract`**, which publishes everything a host provides: the theme type variations
-  and the class each styles, the ground colour, and the three translation keys
-  (`SHANTY_HOLD_TO_SKIP`, `SHANTY_REPLY_PLACEHOLDER`, `SHANTY_READING_AGAIN`). A test holds it equal
-  to what the scenes and scripts really use.
+  and the class each styles, every theme item the code reads by name (`THEME_ITEMS`, spelled
+  `<type>/<kind>/<item>` as a theme `.tres` spells it), the ground colour, and the three translation
+  keys (`SHANTY_HOLD_TO_SKIP`, `SHANTY_REPLY_PLACEHOLDER`, `SHANTY_READING_AGAIN`). A test holds it
+  equal to what the scenes and scripts really look up — every assigned variation, every
+  `get_theme_*` call, every translated key — not to the names they merely mention.
 - **`MANIFEST.sha256`**: the SHA-256 of every file in the addon (`.uid` and `.import` files aside),
   so a host can prove its copy is unmodified.
 - **An example host** in `example/`, with its own strings in English and Brazilian Portuguese, that

@@ -347,6 +347,13 @@ player is a `CanvasLayer`, and Godot does not carry a parent Control's theme thr
 | `ShantySkipBar` | `ProgressBar` | The hold-to-skip bar |
 | `ShantyFrame` | `ColorRect` | Its `ground_color` is the frame's ground (below) |
 
+**Theme items read by name.** Beyond what each control draws for itself, Shanty's code reads four
+items, listed in `ShantyHostContract.THEME_ITEMS` in a theme `.tres`'s own spelling:
+`ShantyChoice/styles/normal` (its left margin places the reply mark),
+`ShantyChoice/colors/font_focus_color` (the mark itself), `ShantyName/colors/font_color` (the
+continue marker) and `ShantyFrame/colors/ground_color` (below). With a variation declared on its
+base class, an item your theme leaves out is the base class's; the ground falls back to black.
+
 **The ground colour.** The ground behind a still, the letterbox bars, the fade and the dim over your
 screen all draw in one colour: `ground_color` on the `ShantyFrame` type. The player reads it when it
 is ready and again whenever its theme changes; the ground, bars and fade use it opaque, and the dim

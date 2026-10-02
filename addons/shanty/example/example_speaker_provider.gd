@@ -8,9 +8,9 @@ extends ShantySpeakerProvider
 ## Any other id resolves through the base provider: a stand-in named by its id,
 ## loud on screen rather than silent.
 
-const SPEAKER_PATHS: PackedStringArray = [
-	"res://addons/shanty/example/speaker_keeper.tres",
-	"res://addons/shanty/example/speaker_visitor.tres",
+const SPEAKERS: Array[SpeakerDefinition] = [
+	preload("res://addons/shanty/example/speaker_keeper.tres"),
+	preload("res://addons/shanty/example/speaker_visitor.tres"),
 ]
 ## Placeholder face size, in art pixels.
 const FACE_SIZE: int = 48
@@ -27,8 +27,7 @@ var _placeholders: Dictionary[StringName, Texture2D] = {}
 
 
 func _init() -> void:
-	for path: String in SPEAKER_PATHS:
-		var definition: SpeakerDefinition = load(path) as SpeakerDefinition
+	for definition: SpeakerDefinition in SPEAKERS:
 		if definition != null and not definition.speaker_id.is_empty():
 			_definitions[definition.speaker_id] = definition
 

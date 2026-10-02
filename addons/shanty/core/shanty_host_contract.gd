@@ -26,6 +26,21 @@ const THEME_TYPE_VARIATIONS: Dictionary[StringName, StringName] = {
 	&"ShantyFrame": &"ColorRect",
 }
 
+## Every theme item Shanty's code reads by name, beyond what each control draws
+## for itself, spelled as a theme `.tres` spells it: `<type>/<kind>/<item>`. With
+## the variation declared on its base class, an item the theme leaves out is the
+## base class's; the ground falls back to black.
+const THEME_ITEMS: PackedStringArray = [
+	# The reply button's box; its left margin sets where the drawn mark sits.
+	"ShantyChoice/styles/normal",
+	# The drawn mark beside the focused reply.
+	"ShantyChoice/colors/font_focus_color",
+	# The frame's ground (FRAME_GROUND_COLOR below).
+	"ShantyFrame/colors/ground_color",
+	# The continue marker, drawn in the name plate's text colour.
+	"ShantyName/colors/font_color",
+]
+
 ## The theme type and colour the cutscene frame's ground is drawn in: the ground
 ## behind a still, the letterbox bars, the fade, and -- at `FRAME_DIM_ALPHA` --
 ## the dim over the host's own screen while no still is up.
