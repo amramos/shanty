@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="ConversationDefinition" format=3]
+
+[ext_resource type="Script" path="res://addons/shanty/data/dialogue_line.gd" id="1_line"]
+[ext_resource type="Script" path="res://addons/shanty/data/dialogue_choice.gd" id="2_choice"]
+[ext_resource type="Script" path="res://addons/shanty/core/shanty_condition.gd" id="3_condition"]
+[ext_resource type="Script" path="res://addons/shanty/core/shanty_effect.gd" id="4_effect"]
+[ext_resource type="Script" path="res://addons/shanty/example/example_condition.gd" id="5_flag_condition"]
+[ext_resource type="Script" path="res://addons/shanty/example/example_effect.gd" id="6_set_flag"]
+[ext_resource type="Script" path="res://addons/shanty/data/conversation_definition.gd" id="7_conversation"]
+
+[sub_resource type="Resource" id="Resource_lamp_dark"]
+script = ExtResource("5_flag_condition")
+flag = &"example_lamp_dark"
+
+[sub_resource type="Resource" id="Resource_line_1"]
+script = ExtResource("1_line")
+speaker_id = &"keeper"
+face = &"neutral"
+text_key = "SHANTY_EXAMPLE_LINE_1"
+conditions = Array[ExtResource("3_condition")]([SubResource("Resource_lamp_dark")])
+
+[sub_resource type="Resource" id="Resource_line_2"]
+script = ExtResource("1_line")
+speaker_id = &"visitor"
+face = &"neutral"
+text_key = "SHANTY_EXAMPLE_LINE_2"
+
+[sub_resource type="Resource" id="Resource_visitor_lights"]
+script = ExtResource("6_set_flag")
+flag = &"example_visitor_lit_lamp"
+
+[sub_resource type="Resource" id="Resource_reply_a"]
+script = ExtResource("2_choice")
+text_key = "SHANTY_EXAMPLE_REPLY_A"
+effects = Array[ExtResource("4_effect")]([SubResource("Resource_visitor_lights")])
+
+[sub_resource type="Resource" id="Resource_keeper_lights"]
+script = ExtResource("6_set_flag")
+flag = &"example_keeper_lit_lamp"
+
+[sub_resource type="Resource" id="Resource_reply_b"]
+script = ExtResource("2_choice")
+text_key = "SHANTY_EXAMPLE_REPLY_B"
+effects = Array[ExtResource("4_effect")]([SubResource("Resource_keeper_lights")])
+
+[sub_resource type="Resource" id="Resource_line_3"]
+script = ExtResource("1_line")
+speaker_id = &"keeper"
+face = &"neutral"
+text_key = "SHANTY_EXAMPLE_LINE_3"
+choices = Array[ExtResource("2_choice")]([SubResource("Resource_reply_a"), SubResource("Resource_reply_b")])
+reply_speaker_id = &"visitor"
+
+[resource]
+script = ExtResource("7_conversation")
+conversation_id = &"shanty_example_lamp"
+lines = Array[ExtResource("1_line")]([SubResource("Resource_line_1"), SubResource("Resource_line_2"), SubResource("Resource_line_3")])
