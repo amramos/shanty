@@ -8,10 +8,20 @@ extends RefCounted
 
 const NAME_TOKEN: String = "\\{name:([^}]*)\\}"
 const MARKUP_TAG: String = "\\[/?hl\\]"
-## A letter, digit or underscore on either side means the word is part of a
-## longer one. Written with Unicode classes so accented letters count.
-const WORD_EDGE_BEFORE: String = "(?<![\\p{L}\\p{N}_])"
-const WORD_EDGE_AFTER: String = "(?![\\p{L}\\p{N}_])"
+## A letter, combining mark, digit or underscore on either side means the word
+## is part of a longer one. Written with Unicode classes so accented letters
+## count, composed (`é`) or decomposed (`e` + U+0301) alike.
+##
+## **An apostrophe is a word edge, not part of a word**, so a forbidden `she`
+## is found in `she's` and a forbidden `homme` in `l'homme`: a contraction or an
+## elision still says the word, and a lint that missed it would pass the very
+## line it exists to stop. A forbidden word holding an apostrophe (`she's`)
+## still matches only itself. The typographic apostrophe (U+2019) is read as
+## `'`, in the text and in the word list alike.
+const WORD_EDGE_BEFORE: String = "(?<![\\p{L}\\p{M}\\p{N}_])"
+const WORD_EDGE_AFTER: String = "(?![\\p{L}\\p{M}\\p{N}_])"
+const APOSTROPHE: String = "'"
+const TYPOGRAPHIC_APOSTROPHE: String = "\u2019"
 
 
 ## Duplicate keys and rows the importer would drop for their width.
@@ -71,18 +81,19 @@ static func check_flags(
 
 
 ## The words of `words` that `text` contains whole, case-insensitively, in
-## list order. `{name:}` tokens and markup tags are not text.
+## list order. `{name:}` tokens and markup tags are not text. Words are compared
+## as written, without Unicode normalization.
 static func forbidden_words_in(text: String, words: PackedStringArray) -> PackedStringArray:
 	var found: PackedStringArray = []
 	if text.is_empty():
 		return found
-	var plain: String = plain_text(text)
+	# Lower-cased here rather than with `(?i)`, which folds ASCII only.
+	var plain: String = _comparable(plain_text(text))
 	for word: String in words:
 		if word.strip_edges().is_empty():
 			continue
-		var pattern: String = (
-			"(?i)" + WORD_EDGE_BEFORE + escape_regex(word.strip_edges()) + WORD_EDGE_AFTER
-		)
+		var literal: String = _comparable(word.strip_edges())
+		var pattern: String = WORD_EDGE_BEFORE + escape_regex(literal) + WORD_EDGE_AFTER
 		if RegEx.create_from_string(pattern).search(plain) != null:
 			found.append(word.strip_edges())
 	return found
@@ -154,6 +165,11 @@ static func check_length(
 						locale
 					)
 				)
+
+
+## `text` lower-cased, with every typographic apostrophe read as `'`.
+static func _comparable(text: String) -> String:
+	return text.to_lower().replace(TYPOGRAPHIC_APOSTROPHE, APOSTROPHE)
 
 
 ## `text` without its markup tags and `{name:}` tokens.

@@ -56,9 +56,12 @@ static func check(
 		speaker_ids.append(String(id))
 	ShantyLintText.check_tokens(document, speaker_ids, issues)
 	var spoken: PackedStringArray = []
+	# Reply key -> where it was first seen, across every conversation handed in:
+	# a played record names a reply by its key alone.
+	var replies: Dictionary[String, String] = {}
 	for conversation: ConversationDefinition in conversations:
 		if conversation != null:
-			_check_conversation(document, conversation, faces, issues, spoken)
+			_check_conversation(document, conversation, faces, issues, spoken, replies)
 	for scene: CutsceneDefinition in scenes:
 		if scene != null:
 			_require_key(document, scene.title_key, _where(scene, scene.scene_id), issues, true)
@@ -118,7 +121,8 @@ static func _check_conversation(
 	conversation: ConversationDefinition,
 	faces: Dictionary[StringName, PackedStringArray],
 	issues: Array[ShantyLintIssue],
-	spoken: PackedStringArray
+	spoken: PackedStringArray,
+	replies: Dictionary[String, String]
 ) -> void:
 	var where: String = _where(conversation, conversation.conversation_id)
 	if ShantyRunner.has_cycle(conversation):
@@ -157,7 +161,7 @@ static func _check_conversation(
 				)
 			)
 		asking_keys.append(line.text_key)
-		_check_choices(document, conversation, line, at, issues, spoken)
+		_check_choices(document, conversation, line, at, issues, spoken, replies)
 
 
 static func _check_speaker_use(
@@ -201,7 +205,8 @@ static func _check_choices(
 	line: DialogueLine,
 	at: String,
 	issues: Array[ShantyLintIssue],
-	spoken: PackedStringArray
+	spoken: PackedStringArray,
+	replies: Dictionary[String, String]
 ) -> void:
 	if line.choices.size() > MAX_REPLIES:
 		issues.append(
@@ -212,19 +217,22 @@ static func _check_choices(
 				at
 			)
 		)
-	var reply_keys: PackedStringArray = []
 	for choice: DialogueChoice in line.choices:
 		if choice == null:
 			continue
 		_require_key(document, choice.text_key, at, issues)
 		spoken.append(choice.text_key)
-		if not choice.text_key.is_empty() and reply_keys.has(choice.text_key):
+		if replies.has(choice.text_key):
 			issues.append(
 				ShantyLintIssue.error(
-					RULE_DUPLICATE_REPLY, "two replies share this key", choice.text_key, at
+					RULE_DUPLICATE_REPLY,
+					"another reply already has this key (%s)" % replies[choice.text_key],
+					choice.text_key,
+					at
 				)
 			)
-		reply_keys.append(choice.text_key)
+		elif not choice.text_key.is_empty():
+			replies[choice.text_key] = at
 		if ShantyRunner.index_of_label(conversation, choice.jump_label) < 0:
 			if not choice.jump_label.is_empty():
 				issues.append(
