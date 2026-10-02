@@ -85,9 +85,8 @@ static func from_dictionary(data: Dictionary) -> PlayedSceneRecord:
 
 
 func to_dictionary() -> Dictionary:
-	var plain_choices: Dictionary = {}
-	for key: String in choices:
-		plain_choices[key] = choices[key]
+	# A copy, so a host that edits the dictionary never edits the record.
+	var plain_choices: Dictionary[String, int] = choices.duplicate()
 	return {
 		"scene_id": String(scene_id),
 		"playthrough_ordinal": playthrough_ordinal,

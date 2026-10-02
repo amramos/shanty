@@ -68,6 +68,13 @@ func test_the_dictionary_holds_only_plain_json_types() -> void:
 	)
 	assert_eq(typeof(data["scene_id"]), TYPE_STRING, "no StringName on disk")
 	assert_eq(typeof(data["place_id"]), TYPE_STRING)
+	var choices: Dictionary = data["choices"]
+	assert_eq(choices.get_typed_key_builtin(), TYPE_STRING, "replies keyed by String")
+	assert_eq(choices.get_typed_value_builtin(), TYPE_INT, "and indexed by int")
+	var record: PlayedSceneRecord = _record()
+	var copied: Dictionary = record.to_dictionary()["choices"]
+	copied["edited"] = 9
+	assert_false(record.choices.has("edited"), "a copy, never the record's own")
 
 
 func test_wrong_types_fall_back_rather_than_fail() -> void:

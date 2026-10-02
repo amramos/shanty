@@ -83,8 +83,12 @@ jobs:
             echo "::error::Tag ${GITHUB_REF_NAME} does not match plugin.cfg version ${plugin_version}"
             exit 1
           fi
-          escaped="$(printf '%s' "${tag_version}" | sed 's/\./\\./g')"
-          if ! grep -Eq "^## \[?${escaped}\]?( |\$)" addons/shanty/CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no section for ${tag_version}"
+          # The topmost section must be the tagged version: a matching section
+          # further down means the release forgot to open its own.
+          first_heading="$(grep -m 1 '^## ' addons/shanty/CHANGELOG.md || true)"
+          changelog_version="$(printf '%s' "${first_heading#\#\# }" | cut -d ' ' -f 1 | tr -d '[]')"
+          echo "first changelog section: ${first_heading}"
+          if [ "${changelog_version}" != "${tag_version}" ]; then
+            echo "::error::CHANGELOG.md's first section is '${first_heading}', not ${tag_version}"
             exit 1
           fi
