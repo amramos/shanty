@@ -15,7 +15,7 @@ const SPEAKERS: Array[SpeakerDefinition] = [
 ## Placeholder face size, in art pixels.
 const FACE_SIZE: int = 48
 const FACE_BORDER: int = 2
-const FACE_BORDER_COLOUR: Color = Color8(24, 24, 24)
+const FACE_BORDER_COLOUR: Color = Color.BLACK
 ## One flat colour per speaker, so the two are told apart at a glance.
 const FACE_COLOURS: Dictionary[StringName, Color] = {
 	&"keeper": Color8(138, 109, 58),
