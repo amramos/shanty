@@ -1,13 +1,17 @@
 extends RefCounted
 
 ## A small authored project in a temporary folder for the editor-model tests:
-## a CSV with a quoted row nobody edits, one speaker, one two-line conversation
-## and a config naming them. No `class_name`, as with every support script.
+## a CSV with a quoted row nobody edits, one speaker, one two-line conversation,
+## empty scenes and triggers folders, and a config naming them. No
+## `class_name`, as with every support script.
 
 const ROOT: String = "user://shanty_editor_fixture"
 const CSV_PATH: String = ROOT + "/strings.csv"
 const SPEAKERS: String = ROOT + "/speakers"
 const CONVERSATIONS: String = ROOT + "/conversations"
+const SCENES: String = ROOT + "/scenes"
+const TRIGGERS: String = ROOT + "/triggers"
+const STEPS: String = "res://addons/shanty/data/steps/"
 const CONDITION_SCRIPT: String = "res://addons/shanty/example/example_condition.gd"
 const EFFECT_SCRIPT: String = "res://addons/shanty/example/example_effect.gd"
 const CSV: String = (
@@ -25,6 +29,8 @@ static func build() -> ShantyProjectConfig:
 	remove()
 	DirAccess.make_dir_recursive_absolute(SPEAKERS)
 	DirAccess.make_dir_recursive_absolute(CONVERSATIONS)
+	DirAccess.make_dir_recursive_absolute(SCENES)
+	DirAccess.make_dir_recursive_absolute(TRIGGERS)
 	ShantyFiles.write_text(CSV_PATH, CSV)
 	var speaker := SpeakerDefinition.new()
 	speaker.speaker_id = &"ana"
@@ -45,6 +51,8 @@ static func config() -> ShantyProjectConfig:
 	made.csv_path = CSV_PATH
 	made.speakers_folder = SPEAKERS
 	made.conversations_folder = CONVERSATIONS
+	made.scenes_folder = SCENES
+	made.triggers_folder = TRIGGERS
 	var rule := ShantyFlagRule.new()
 	rule.flag = "NEUTRAL"
 	rule.forbidden_words = {"en": PackedStringArray(["he", "she"])}
