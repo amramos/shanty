@@ -7,10 +7,11 @@ conversation and hands back what your game should do, and a `CanvasLayer` player
 Shanty owns no state and no theme. It never applies an effect, never saves anything, and never
 decides when a scene should play: your game does all three, through four small interfaces.
 
-**Version 0.1.0.** Requires Godot 4.4 or later (typed dictionaries); developed and tested on 4.7.1.
-MIT licensed. Everything is authored as resources and CSV rows today; an editor surface for writers
-arrives in 0.2.0. Until then `plugin.cfg` is editor-inert: the classes register through `class_name`
-alone, so there is nothing to enable.
+**Version 0.2.0.** Requires Godot 4.4 or later (typed dictionaries); developed and tested on 4.7.1.
+MIT licensed. Enable the plugin for [the Shanty tab](#the-shanty-tab), where a writer edits speakers
+and conversations against your translation CSV; scenes, triggers and a live preview join it in
+0.3.0. The runtime never needs the plugin: every class registers through `class_name`, so a game
+plays its scenes whether it is enabled or not.
 
 ## Install
 
@@ -25,7 +26,8 @@ unmodified.
 ## Run the example (about two minutes)
 
 `example/` is a whole host — a lighthouse keeper, a visitor, and one question — with its own
-strings in English and Brazilian Portuguese and no other code.
+strings in English and Brazilian Portuguese (and a deliberately unfinished French column) and no
+other code.
 
 1. Open the project. In this repository the example is the main scene: press **F5**. In your own
    project, open `addons/shanty/example/example_host.tscn` and press **F6** (Run Current Scene).
@@ -59,7 +61,7 @@ to open its fields.
 
 Every word a reader sees is a translation key. Godot imports `example/example_strings.csv` into one
 `.translation` file per locale the first time the project opens. In **Project > Project Settings >
-Localization > Translations**, press **Add…** and pick both:
+Localization > Translations**, press **Add…** and pick these two:
 `addons/shanty/example/example_strings.en.translation` and
 `addons/shanty/example/example_strings.pt_BR.translation`. They also hold the three keys every host
 declares (see [the host contract](#the-host-contract)).
@@ -261,6 +263,16 @@ From here:
 
 ## Authoring reference
 
+**The CSV's own columns.** Two `_` columns mean something to the Shanty tab; any other is kept
+exactly as it is:
+
+- **`_notes`** — free text for whoever writes or translates the line.
+- **`_flags`** — tokens separated by `|`, such as `NEUTRAL` or `NEUTRAL|SHORT`. Shanty knows no flag
+  by name: your `ShantyProjectConfig` lists the flags your writers may set and, per locale, the
+  whole words a flagged line may not contain. A locale with no list has no rule. The example
+  defines one flag, `NEUTRAL`, with English pronouns, and sets it on the two rows that name a
+  speaker by token.
+
 **Markup.** Two pieces are the whole authoring contract:
 
 - **`[hl]…[/hl]`** draws its words in your highlight colour (`ShantyText.set_highlight_colour()`).
@@ -304,6 +316,77 @@ scene. Shanty never decides when a moment happens — your code does, then asks 
 
 **Playing.** `finished` fires once, at the end — never at the start — so a scene abandoned halfway
 plays again.
+
+## The Shanty tab
+
+Enable the plugin (**Project > Project Settings > Plugins**) and a **Shanty** tab appears beside 2D,
+3D and Script. It edits the same CSV rows and `.tres` files you would write by hand, so a writer and
+anyone editing those files as text can work on one project.
+
+**Point it at your project.** The tab reads one `ShantyProjectConfig` resource, named by the project
+setting `shanty/config_path` (**Project Settings > General > Shanty**, shown once the plugin is
+enabled). Make one with **Create New > Resource… > ShantyProjectConfig** and set:
+
+- `csv_path` — your translation CSV.
+- `speakers_folder`, `conversations_folder`, `scenes_folder`, `triggers_folder` — where those
+  resources live; one folder may serve several, and each `.tres` is listed under its own kind.
+- `source_locale` — the locale a session opens on.
+- `flags` — one `ShantyFlagRule` per flag your writers may set: the flag's name and, per locale, the
+  whole words a flagged line may not contain in that locale.
+- `key_scheme` — how new keys are named (below); empty uses the defaults.
+- `length_cap` — characters a line may run to before the lint warns; 0 is no cap.
+- `required_locales`, `trigger_ids`, `theme_path`, `preview_host_path` — yours to read in your own
+  tests, or used by the preview in 0.3.0; Shanty enforces none of them.
+
+This repository's own setting points at `example/shanty_config.tres`, so opening it shows the
+lighthouse conversation in the tab.
+
+**The panes.** The left pane lists your speakers and conversations (scenes and triggers are listed;
+editing them arrives in 0.3.0); type an id and press **+ Speaker** or **+ Conversation** to make one.
+The centre edits what you picked:
+
+- **A speaker**: its id, its name key (named for you, editable), the name in the source and target
+  locales, notes, and its faces — an emotion tag each, with a texture chosen through the editor's
+  own resource picker. A face may have no texture yet.
+- **A conversation**: a table with one row per line — number, speaker, face (the speaker's tags),
+  the source text with its key under it, the target text, the flag toggles and notes. Under each
+  line: its label (a jump target), **+ Condition** and **+ Effect** (every subclass of
+  `ShantyCondition` or `ShantyEffect` your project declares, or any script file that extends one;
+  the new entry opens in the Inspector, where you edit its exports), **+ Choice** (up to three
+  replies, each with its own key, a jump and effects), and who answers the replies.
+
+The right pane is where the line preview arrives in 0.3.0.
+
+**Two locales at a time.** The toolbar's **Source** and **Target** dropdowns list every locale column
+your CSV has — the header is the only list of locales there is — and the table shows those two side
+by side. An empty target cell is drawn as an empty dashed box. **+ Locale** adds a column for a new
+language; nothing else needs to change.
+
+**Coverage is a report.** The strip reads like `en 14/14 · pt_BR 14/14 · fr 10/14`, an incomplete
+locale in the editor's warning colour. An empty cell never blocks Save: whether a missing
+translation fails anything is your rule, in your own tests.
+
+**Keys.** A new line is keyed `DLG_<CONVERSATION>_<nn>` by default, its replies `<line key>A`, `B`
+and `C`, and a speaker's name `SPEAKER_<ID>`; a conversation's prefix is editable, and a
+`ShantyKeyScheme` changes any pattern. **A key is never renumbered**: a line inserted
+mid-conversation takes the next free number. New rows go into the CSV as one block after the
+conversation's last row, so two people adding to different conversations touch different parts of
+the file, and every row you did not edit is written back byte for byte.
+
+**Lint.** Lint runs as you type, on demand, and before every Save. Errors refuse Save: a key missing
+from the CSV or on two rows, a row of the wrong width (Godot's importer drops it), a flagged line
+containing one of its flag's forbidden words, `{name:<id>}` tokens that differ between locales, a
+reply jumping to a label no line carries, a conversation that can loop, an unknown speaker or face,
+two replies that could not be told apart in a played record. Warnings never do: an over-length line,
+a flag your config does not name, a token naming a speaker the speakers folder lacks. A host's own
+tests can run the same checks: `ShantyLint.check()` takes the CSV and the resources and touches
+neither the editor nor the disk.
+
+**Save, and stale files.** Save writes the CSV (then reimports it) and every speaker and
+conversation you changed, through `ResourceSaver`. Each file's content is fingerprinted when the
+tab reads it; if any file Save would write has changed on disk since — someone else edited it —
+Save refuses and writes nothing, and **Reload** reads the files again, dropping your unsaved edits.
+It never overwrites rows it has not seen.
 
 ## The host contract
 
@@ -368,9 +451,10 @@ ShantyFrame/colors/ground_color = Color(0.05, 0.1, 0.2, 1)
 
 Shanty reads every word through Godot's `TranslationServer`, so localization is Godot's own CSV
 translations: a `keys` column, then one column per locale — as many as you like — and any column
-whose header starts with `_` for notes. No locale is special to Shanty, and it never names one; the
-example carries English and Brazilian Portuguese only because it needs two to show the mechanism.
-Which locales your game requires is your rule, not Shanty's.
+whose header starts with `_` for the writers, which the importer skips. No locale is special to
+Shanty, and it never names one; the example carries English and Brazilian Portuguese, and a
+deliberately unfinished French column so the Shanty tab has a gap to report. Which locales your game
+requires is your rule, not Shanty's.
 
 ## Rules the code keeps
 
@@ -401,8 +485,10 @@ Which locales your game requires is your rule, not Shanty's.
 | `data/` | The authored shapes: `SpeakerDefinition`/`SpeakerFace`, `ConversationDefinition`, `DialogueLine`, `DialogueChoice`, `CutsceneDefinition`, `CutsceneStep` and `steps/` (`BackdropStep`, `PanStep`, `FadeStep`, `SayStep`, `WaitStep`, `MusicStep`; `AnimateStep` and `VideoStep` declared and unbuilt), `StoryTriggerDefinition`/`StoryCandidate`, and the `PlayedSceneRecord` a host persists (scene, ordinal, an optional `place_id` in the host's own naming, replies taken, and the title, synopsis key and `remembered` flag as they were at that playing) |
 | `core/` | Pure code, the four host interfaces and the contract: `ShantyRunner`, `ShantySelector`, `ShantyText`, `ShantyViewSettings`, `ShantySpeaker`; `ShantyContext`, `ShantyCondition`, `ShantyEffect`, `ShantySpeakerProvider`; `ShantyHostContract` |
 | `ui/` | `CutscenePlayer` (layer, shield, backdrop, letterbox, fade, hold-to-skip, replay) and `DialogueView` (the top-docked bar), with the pieces they are built from: `ShantyBackdrop` (integer-scale still and pan), `ShantyPressInput` (tap versus hold, and the waits a tap may cut short), `ShantySay` (a scene's conversations), `ShantyMusic` (duck/swap and their undo), `ShantyTypewriter` (a line typing out), `ShantyReplyTurn` (the reply speaker's turn and its buttons), `ShantyLineAudio` (a line's voice and its blips), `ShantyChoiceButton`, `ShantyContinueMarker`, `SkipHold` |
-| `example/` | A whole host with no other code: context, condition, effect, speaker provider, host scene, a three-line conversation with one choice, its scene, two speakers, and its own strings. Its scripts declare no `class_name`, so installing Shanty spends no global names on it. It reads `example_strings.csv` at runtime, which an export does not include, so it runs from the editor; a real host adds its catalogue through Project Settings and needs no loader |
-| `plugin.cfg`, `plugin.gd` | Editor-inert in this version |
+| `lint/` | Pure checks the tab and a host's tests share, with no editor and no file access: `ShantyCsvDocument` (with `ShantyCsvCodec` and `ShantyCsvRow`) reads and writes the translation CSV, `ShantyLocaleCoverage` reports one locale, `ShantyKeyScheme` names keys, `ShantyLint` (with `ShantyLintText`) returns `ShantyLintIssue`s, and `ShantyProjectConfig` with its `ShantyFlagRule`s is a host's configuration |
+| `editor/` | The Shanty tab. `model/` holds everything it knows and does, testable without the editor: `ShantyEditorModel`, `ShantySpeakerEdits`, `ShantyConversationEdits`, `ShantyClassCatalog` (the pickers' classes), `ShantySaveResult`, and `ShantyFiles`, the one script that opens a file your config names. The scenes and scripts beside it are thin panes over that model |
+| `example/` | A whole host with no other code: context, condition, effect, speaker provider, host scene, a three-line conversation with one choice, its scene, two speakers, its own strings, and `shanty_config.tres`, its configuration for the Shanty tab. Its scripts declare no `class_name`, so installing Shanty spends no global names on it. It reads `example_strings.csv` at runtime, which an export does not include, so it runs from the editor; a real host adds its catalogue through Project Settings and needs no loader |
+| `plugin.cfg`, `plugin.gd` | The editor plugin: the Shanty tab and the `shanty/config_path` setting |
 | `CHANGELOG.md`, `LICENSE`, `MANIFEST.sha256` | What each version changed; MIT; the release's file hashes |
 
 ## Developing Shanty

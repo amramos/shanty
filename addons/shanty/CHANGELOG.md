@@ -8,6 +8,60 @@ change the authored data's shape; every such change is marked **BREAKING** with 
 The topmost section is always the version in `plugin.cfg`, and a release tag `vX.Y.Z` always has
 its section here.
 
+## 0.2.0
+
+The editor surface for writers, first half: a Shanty tab for speakers and conversations, and the
+pure checks it shares with a host's own tests. Scenes, triggers, the line preview and Play arrive in
+0.3.0. No authored data changes shape, so nothing here is **BREAKING**.
+
+### Added
+
+- **The Shanty tab**, a main-screen tab beside 2D, 3D and Script once the plugin is enabled. A list of
+  speakers and conversations (scenes and triggers listed, editing in 0.3.0); a speaker form with the
+  name key, the name in two locales, notes and faces, each face's texture chosen through the
+  editor's resource picker; a line table with speaker and face dropdowns, source and target text,
+  each key and its state, flag toggles, notes, labels, up to three replies with their own keys, jumps
+  and effects, and condition and effect pickers whose entries are edited in the Inspector. A toolbar
+  with the source and target locale dropdowns, **+ Locale**, the coverage strip, Reload, Lint and
+  Save.
+- **Locales come from the CSV header only.** Any column that is not the keys column and does not
+  start with `_` is a locale, Godot's own rule; the writer sees one source and one target at a time,
+  chosen from dropdowns, and **+ Locale** adds a column. An empty target cell is drawn as an empty
+  dashed box.
+- **Coverage is a report, never a refusal.** The strip counts filled cells per locale and colours an
+  incomplete one; an empty cell never blocks Save.
+- **`_flags`**, a structured CSV column of `|`-separated tokens, beside the free-text `_notes`. A host
+  names its flags and, per locale, the whole words a flagged line may not contain; Shanty knows no
+  flag by name.
+- **Save that never overwrites unseen work.** Save lints first and refuses on an error; it
+  fingerprints every file when it is read and refuses, writing nothing, when one it would write has
+  changed on disk since. It writes the CSV with every untouched row byte for byte and new rows as one
+  block after their conversation's last row, saves changed resources through `ResourceSaver`, and
+  reimports the CSV.
+- **`lint/`, pure and headless:** `ShantyCsvDocument` (with `ShantyCsvCodec` and `ShantyCsvRow`)
+  reads and writes the translation CSV exactly as Godot's importer reads it; `ShantyLocaleCoverage`;
+  `ShantyKeyScheme`, which names new keys from configurable patterns and never renumbers one;
+  `ShantyLint` (with `ShantyLintText`), whose `ShantyLintIssue`s cover missing and doubled keys, rows
+  the importer would drop, flagged words, `{name:}` tokens that differ between locales, loops, jumps
+  to missing labels, unknown speakers and faces, replies a played record could not tell apart, and
+  over-length lines; and `ShantyProjectConfig` with `ShantyFlagRule`.
+- **`editor/model/`, testable without the editor:** `ShantyEditorModel`, `ShantySpeakerEdits`,
+  `ShantyConversationEdits`, `ShantyClassCatalog`, `ShantySaveResult` and `ShantyFiles`.
+- **The project setting `shanty/config_path`**, registered by the plugin, naming the host's
+  `ShantyProjectConfig`.
+- **The example is the tab's demo:** `example/shanty_config.tres` (its CSV and folders, a key scheme
+  matching its keys, and one flag, `NEUTRAL`, with English pronouns), a partial French column and a
+  `_flags` column in `example_strings.csv`, and this repository's `shanty/config_path` pointing at it.
+
+### Changed
+
+- **`plugin.cfg` is no longer editor-inert.** Enabling the plugin adds the tab and the project
+  setting. The runtime still needs no plugin: every class registers through `class_name`.
+- The example's placeholder face border is pure black (`Color.BLACK`), the neutral default a host's
+  palette check expects, rather than a near-black.
+- The example's translation loader skips an empty cell, so a partly translated locale falls back
+  instead of showing nothing.
+
 ## 0.1.0
 
 The first public release: the runtime, the host contract and an example host. The editor surface
