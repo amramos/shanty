@@ -10,9 +10,11 @@ signal locale_requested(locale: String)
 signal reload_pressed
 signal lint_pressed
 signal save_pressed
+signal create_config_pressed
 
 const Palette := preload("res://addons/shanty/editor/shanty_editor_palette.gd")
 
+var _create_config: Button = Button.new()
 var _source: OptionButton = OptionButton.new()
 var _target: OptionButton = OptionButton.new()
 var _new_locale: LineEdit = LineEdit.new()
@@ -24,6 +26,11 @@ func build() -> void:
 	if _built:
 		return
 	_built = true
+	_create_config.text = "Create config…"
+	_create_config.tooltip_text = "Save a new ShantyProjectConfig and point the project at it"
+	_create_config.visible = false
+	_create_config.pressed.connect(create_config_pressed.emit)
+	add_child(_create_config)
 	_add_caption("Source")
 	add_child(_source)
 	_add_caption("Target")
@@ -42,6 +49,11 @@ func build() -> void:
 	_add_button("Save", save_pressed.emit)
 	_source.item_selected.connect(_on_locale_selected.unbind(1))
 	_target.item_selected.connect(_on_locale_selected.unbind(1))
+
+
+## Offers Create config… only while no config is open.
+func show_config_missing(missing: bool) -> void:
+	_create_config.visible = missing
 
 
 ## Fills both dropdowns with the CSV's locales.

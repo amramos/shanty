@@ -13,10 +13,12 @@ const ID_PATTERN: String = "^[a-z0-9_]+$"
 
 ## A new conversation saved as `<conversations folder>/<id>.tres`, its keys
 ## under `prefix` (the scheme's default when empty). Null, changing nothing,
-## for a bad or taken id or an existing file.
+## for a bad or taken id, an existing file, or no config open.
 static func add_conversation(
 	model: ShantyEditorModel, id: String, prefix: String = ""
 ) -> ConversationDefinition:
+	if model.config == null:
+		return null
 	var folder: String = model.config.conversations_folder
 	var path: String = folder.path_join(id + ".tres")
 	if RegEx.create_from_string(ID_PATTERN).search(id) == null or folder.is_empty():

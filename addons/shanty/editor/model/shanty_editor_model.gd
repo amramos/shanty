@@ -18,7 +18,15 @@ extends RefCounted
 ## Emitted after any edit, so the panes can redraw.
 signal changed
 
+## Why the last open left the model empty.
+enum Problem { NONE, NO_SETTING, NO_FILE, NOT_A_CONFIG, NO_CSV_PATH }
+
+## Null whenever `problem` is not `NONE`.
 var config: ShantyProjectConfig = null
+var problem: Problem = Problem.NONE
+## One sentence about the last open: why it failed, or what to know; "" when
+## there is nothing to say.
+var status: String = ""
 var document: ShantyCsvDocument = ShantyCsvDocument.new()
 var speakers: Array[SpeakerDefinition] = []
 var conversations: Array[ConversationDefinition] = []
@@ -40,24 +48,44 @@ var _dirty: Array[Resource] = []
 var _new_paths: Dictionary[Resource, String] = {}
 
 
+## Opens the config at `path` -- the project setting's value -- and everything
+## it names. Anything but `Problem.NONE` leaves the model empty, with `config`
+## null; `status` says what happened either way.
+func open_path(path: String, fresh: bool = false) -> Problem:
+	var loaded: ShantyProjectConfig = null
+	if not path.is_empty() and ShantyFiles.exists(path):
+		loaded = ShantyFiles.load_resource(path, fresh) as ShantyProjectConfig
+	if path.is_empty():
+		_refuse(Problem.NO_SETTING, "No Shanty config: %s is empty." % ShantyProjectConfig.SETTING)
+	elif not ShantyFiles.exists(path):
+		_refuse(Problem.NO_FILE, "No Shanty config: %s does not exist." % path)
+	elif loaded == null:
+		_refuse(Problem.NOT_A_CONFIG, "%s is not a ShantyProjectConfig." % path)
+	else:
+		open(loaded, fresh)
+	return problem
+
+
 ## Reads everything `with_config` names. Returns "" or why it could not.
 func open(with_config: ShantyProjectConfig, fresh: bool = false) -> String:
 	if with_config == null:
-		return "No Shanty config: set the project setting %s." % ShantyProjectConfig.SETTING
+		return _refuse(Problem.NOT_A_CONFIG, "No Shanty config to open.")
+	if with_config.csv_path.is_empty():
+		return _refuse(Problem.NO_CSV_PATH, "The Shanty config names no CSV: set its csv_path.")
+	_reset()
 	config = with_config
-	_hashes.clear()
-	_dirty.clear()
-	_new_paths.clear()
-	key_prefixes.clear()
-	_csv_dirty = false
 	document = ShantyCsvDocument.parse(ShantyFiles.read_text(config.csv_path))
 	_hashes[config.csv_path] = ShantyFiles.hash_of(config.csv_path)
 	_load_folders(fresh)
-	_choose_locales()
-	changed.emit()
+	var pair: PackedStringArray = document.opening_locales(config.source_locale)
+	source_locale = pair[0]
+	target_locale = pair[1]
+	problem = Problem.NONE
+	status = ""
 	if not ShantyFiles.exists(config.csv_path):
-		return "The CSV %s does not exist yet; Save creates it." % config.csv_path
-	return ""
+		status = "The CSV %s does not exist yet; Save creates it." % config.csv_path
+	changed.emit()
+	return status
 
 
 ## Throws away every unsaved edit and reads the files again.
@@ -233,11 +261,33 @@ func _edit_csv(done: bool) -> bool:
 	return done
 
 
-func _load_folders(fresh: bool) -> void:
+## Empties the model, records why, and returns the reason.
+func _refuse(why: Problem, reason: String) -> String:
+	_reset()
+	problem = why
+	status = reason
+	changed.emit()
+	return reason
+
+
+## Forgets every file read and every edit made.
+func _reset() -> void:
+	config = null
+	document = ShantyCsvDocument.new()
 	speakers.clear()
 	conversations.clear()
 	scenes.clear()
 	triggers.clear()
+	source_locale = ""
+	target_locale = ""
+	key_prefixes.clear()
+	_hashes.clear()
+	_dirty.clear()
+	_new_paths.clear()
+	_csv_dirty = false
+
+
+func _load_folders(fresh: bool) -> void:
 	var seen: Dictionary[String, bool] = {}
 	for folder: String in config.content_folders():
 		for path: String in ShantyFiles.list_resources(folder):
@@ -262,15 +312,3 @@ func _keep(resource: Resource) -> bool:
 	else:
 		return false
 	return true
-
-
-func _choose_locales() -> void:
-	var available: PackedStringArray = document.locales()
-	source_locale = config.source_locale if available.has(config.source_locale) else ""
-	if source_locale.is_empty() and not available.is_empty():
-		source_locale = available[0]
-	target_locale = ""
-	for locale: String in available:
-		if locale != source_locale:
-			target_locale = locale
-			break

@@ -39,8 +39,10 @@ static func face_tags(model: ShantyEditorModel, id: StringName) -> PackedStringA
 ## A new speaker saved as `<speakers folder>/<id>.tres`, its name key named by
 ## the scheme and given a row beside the other speakers' names. Null, changing
 ## nothing, for an id that is not lower-case `a-z0-9_`, is taken, or whose file
-## already exists.
+## already exists, and with no config open.
 static func add_speaker(model: ShantyEditorModel, id: String) -> SpeakerDefinition:
+	if model.config == null:
+		return null
 	var folder: String = model.config.speakers_folder
 	var path: String = folder.path_join(id + ".tres")
 	if RegEx.create_from_string(ID_PATTERN).search(id) == null or folder.is_empty():

@@ -8,6 +8,11 @@ extends Resource
 
 ## The project setting that names this resource.
 const SETTING: String = "shanty/config_path"
+## The setting's default: the example's config, so a host that has just
+## installed the addon opens the tab on the demo.
+const DEFAULT_PATH: String = "res://addons/shanty/example/shanty_config.tres"
+## The CSV a config made by the tab's Create config names, beside it.
+const NEW_CSV_NAME: String = "dialogue_strings.csv"
 
 ## The translation CSV every key lives in.
 @export_file("*.csv") var csv_path: String = ""

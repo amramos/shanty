@@ -51,13 +51,14 @@ func _get_plugin_icon() -> Texture2D:
 	return load(ICON_PATH) as Texture2D
 
 
-## Adds `shanty/config_path` to Project Settings with an empty default, so a
-## host sees where to point it. A value the host already set is kept.
+## Adds `shanty/config_path` to Project Settings, defaulting to the example's
+## config inside the addon so a fresh host sees the demo, and the tab's Create
+## config points it at the host's own. A value the host already set is kept.
 static func _register_setting() -> void:
 	var setting: String = ShantyProjectConfig.SETTING
 	if not ProjectSettings.has_setting(setting):
-		ProjectSettings.set_setting(setting, "")
-	ProjectSettings.set_initial_value(setting, "")
+		ProjectSettings.set_setting(setting, ShantyProjectConfig.DEFAULT_PATH)
+	ProjectSettings.set_initial_value(setting, ShantyProjectConfig.DEFAULT_PATH)
 	ProjectSettings.set_as_basic(setting, true)
 	(
 		ProjectSettings

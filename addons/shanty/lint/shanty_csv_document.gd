@@ -76,6 +76,20 @@ func locales() -> PackedStringArray:
 	return found
 
 
+## The source and target a session opens on: `preferred` when the file has it,
+## else the first locale; the target is the first other locale. "" for either
+## the file cannot supply.
+func opening_locales(preferred: String) -> PackedStringArray:
+	var available: PackedStringArray = locales()
+	var source: String = preferred if available.has(preferred) else ""
+	if source.is_empty() and not available.is_empty():
+		source = available[0]
+	for locale: String in available:
+		if locale != source:
+			return PackedStringArray([source, locale])
+	return PackedStringArray([source, ""])
+
+
 static func is_locale_header(name: String) -> bool:
 	return not name.is_empty() and not name.begins_with("_")
 

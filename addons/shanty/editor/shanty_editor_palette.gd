@@ -36,7 +36,10 @@ static func caption(text: String, colour: Color) -> Label:
 	return label
 
 
+## The editor theme's colour, or `fallback` outside the running editor.
 static func _editor_colour(name: StringName, fallback: Color) -> Color:
+	if not Engine.is_editor_hint():
+		return fallback
 	var theme: Theme = EditorInterface.get_editor_theme()
 	if theme == null or not theme.has_color(name, &"Editor"):
 		return fallback

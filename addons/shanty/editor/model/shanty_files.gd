@@ -139,12 +139,36 @@ static func instantiate(path: String) -> Resource:
 	return made
 
 
+## The path the project setting names: the addon's example config when the
+## setting was never registered, "" when the host emptied it.
+static func config_path() -> String:
+	return String(
+		ProjectSettings.get_setting(ShantyProjectConfig.SETTING, ShantyProjectConfig.DEFAULT_PATH)
+	)
+
+
 ## The config the project setting names, or null with no setting or no file.
 static func configured() -> ShantyProjectConfig:
-	var path: String = String(ProjectSettings.get_setting(ShantyProjectConfig.SETTING, ""))
-	if path.is_empty():
+	var path: String = config_path()
+	if path.is_empty() or not exists(path):
 		return null
 	return load_resource(path) as ShantyProjectConfig
+
+
+## Saves a new config at `path`, its CSV and every folder beside it, so the
+## tab opens on it at once; the writer edits it in the Inspector from there.
+static func create_config(path: String) -> Error:
+	var made := ShantyProjectConfig.new()
+	var folder: String = path.get_base_dir()
+	made.csv_path = folder.path_join(ShantyProjectConfig.NEW_CSV_NAME)
+	made.speakers_folder = folder
+	made.conversations_folder = folder
+	made.scenes_folder = folder
+	made.triggers_folder = folder
+	var error: Error = ResourceSaver.save(made, path)
+	if error == OK:
+		made.take_over_path(path)
+	return error
 
 
 static func _collect(folder: String, found: PackedStringArray) -> void:
