@@ -148,18 +148,12 @@ static func _check_conversation(
 		if line.choices.is_empty():
 			continue
 		if asking_keys.has(line.text_key):
-			(
-				issues
-				. append(
-					(
-						ShantyLintIssue
-						. error(
-							RULE_DUPLICATE_REPLY,
-							"two asking lines share this key; a record cannot tell them apart",
-							line.text_key,
-							at
-						)
-					)
+			issues.append(
+				ShantyLintIssue.error(
+					RULE_DUPLICATE_REPLY,
+					"two asking lines share this key; a record cannot tell them apart",
+					line.text_key,
+					at
 				)
 			)
 		asking_keys.append(line.text_key)

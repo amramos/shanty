@@ -69,12 +69,17 @@ static func list_resources(folder: String) -> PackedStringArray:
 
 
 ## A new instance of the script at `path`, or null when it is not a script that
-## builds a Resource.
+## builds a Resource. Made the way the Inspector's "New" menu makes one -- the
+## engine base first, then the script -- because inside the editor a script
+## that is not `@tool` cannot be `new()`-ed, only attached.
 static func instantiate(path: String) -> Resource:
 	var script: Script = load_resource(path) as Script
-	if script == null or not script.can_instantiate():
+	if script == null or not ClassDB.is_parent_class(script.get_instance_base_type(), "Resource"):
 		return null
-	return script.new() as Resource
+	var made: Resource = ClassDB.instantiate(script.get_instance_base_type()) as Resource
+	if made != null:
+		made.set_script(script)
+	return made
 
 
 ## The config the project setting names, or null with no setting or no file.
