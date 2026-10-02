@@ -226,15 +226,12 @@ func _paths_to_write() -> PackedStringArray:
 func _write(issues: Array[ShantyLintIssue]) -> ShantySaveResult:
 	var transaction := ShantySaveTransaction.new()
 	var resources: Array[Resource] = _dirty.duplicate()
-	var claimed: Array[Resource] = _claim_paths(resources)
+	transaction.claim_paths(_new_paths)
 	var staged: bool = not _csv_dirty or transaction.stage_text(config.csv_path, document.to_text())
 	for resource: Resource in resources:
 		staged = staged and transaction.stage_resource(resource, path_of(resource))
 	var committed: bool = staged and transaction.commit()
 	transaction.discard()
-	if not committed:
-		for resource: Resource in claimed:
-			resource.resource_path = ""
 	var result := ShantySaveResult.new()
 	result.issues = issues
 	result.staged_paths = transaction.staged_paths()
@@ -256,19 +253,6 @@ func _write(issues: Array[ShantyLintIssue]) -> ShantySaveResult:
 	result.message = "Saved %d file%s." % [count, "" if count == 1 else "s"]
 	changed.emit()
 	return result
-
-
-## Gives each resource made this session its file before anything is staged,
-## so one new resource naming another -- a new scene saying a new conversation
-## -- is written as a reference to that file, not as a copy embedded in it.
-## Returns the resources it named, which a failed save names nothing again.
-func _claim_paths(resources: Array[Resource]) -> Array[Resource]:
-	var claimed: Array[Resource] = []
-	for resource: Resource in resources:
-		if resource.resource_path.is_empty() and _new_paths.has(resource):
-			ShantyFiles.take_over(resource, _new_paths[resource])
-			claimed.append(resource)
-	return claimed
 
 
 func _edit_csv(done: bool) -> bool:

@@ -33,6 +33,20 @@ var _originals: Array[PackedByteArray] = []
 var _existed: Array[bool] = []
 ## The resource saved to each target, or null for text.
 var _resources: Array[Resource] = []
+## Resources given their file by `claim_paths()`, until a commit keeps it.
+var _claimed: Array[Resource] = []
+
+
+## Gives each resource of `paths` that has no file yet the one it is about to
+## be saved at, before anything is staged: then one new resource naming another
+## -- a new scene saying a new conversation -- is written as a reference to
+## that file, not as a copy embedded in it. Unless the commit succeeds,
+## `discard()` takes the paths back.
+func claim_paths(paths: Dictionary[Resource, String]) -> void:
+	for resource: Resource in paths:
+		if resource.resource_path.is_empty():
+			ShantyFiles.take_over(resource, paths[resource])
+			_claimed.append(resource)
 
 
 ## Stages `text` as the next content of `path`. False, with `failure` set, when
@@ -82,15 +96,20 @@ func commit() -> bool:
 		if _resources[index] != null:
 			ShantyFiles.take_over(_resources[index], _targets[index])
 			_carry_ids(_resources[index], _staged[index], _targets[index])
+	_claimed.clear()
 	return true
 
 
-## Removes every staged file still on disk, and the ids kept for its path.
+## Removes every staged file still on disk and the ids kept for its path, and
+## takes back every path `claim_paths()` gave that no commit kept.
 func discard() -> void:
 	for index: int in _staged.size():
 		ShantyFiles.remove(_staged[index])
 		if _resources[index] != null:
 			_carry_ids(_resources[index], "", _staged[index])
+	for resource: Resource in _claimed:
+		resource.resource_path = ""
+	_claimed.clear()
 
 
 func _remember(path: String, staged: String, resource: Resource) -> void:
