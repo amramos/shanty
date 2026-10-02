@@ -158,3 +158,40 @@ func test_a_new_file_that_appeared_on_disk_is_stale_too() -> void:
 	ShantyFiles.write_text(Fixture.CONVERSATIONS + "/greet.tres", "someone else's")
 
 	assert_eq(_model.save().stale_paths, PackedStringArray([Fixture.CONVERSATIONS + "/greet.tres"]))
+
+
+func test_a_write_that_fails_part_way_leaves_every_file_as_it_was() -> void:
+	var talk_path: String = Fixture.CONVERSATIONS + "/talk.tres"
+	var talk_before: PackedByteArray = ShantyFiles.read_bytes(talk_path)
+	var csv_before: PackedByteArray = ShantyFiles.read_bytes(Fixture.CSV_PATH)
+	_model.set_text("DLG_TALK_02", "pt_BR", "Tchau.")
+	ShantyConversationEdits.add_line(_model, _model.conversations[0], &"ana", &"neutral")
+	# The second resource cannot be written: its folder does not exist.
+	_model.adopt(ConversationDefinition.new(), Fixture.ROOT + "/missing/lost.tres")
+	var result: ShantySaveResult = _model.save()
+
+	assert_engine_error("ERR_CANT_OPEN", "the saver reports the folder it could not open")
+	assert_false(result.saved)
+	assert_string_contains(result.message, "lost.tres")
+	assert_eq(ShantyFiles.read_bytes(Fixture.CSV_PATH), csv_before, "the CSV keeps its bytes")
+	assert_eq(ShantyFiles.read_bytes(talk_path), talk_before, "so does the first resource")
+	assert_false(FileAccess.file_exists(ShantyFiles.text_staging_path(Fixture.CSV_PATH)))
+	assert_false(FileAccess.file_exists(ShantyFiles.resource_staging_path(talk_path)))
+	assert_true(_model.is_dirty(), "every edit is still there to save")
+
+
+func test_a_save_writes_the_csv_and_every_resource_together() -> void:
+	var conversation: ConversationDefinition = _model.conversations[0]
+	ShantyConversationEdits.add_line(_model, conversation, &"ana", &"neutral")
+	var greet: ConversationDefinition = ShantyConversationEdits.add_conversation(_model, "greet")
+	ShantyConversationEdits.add_line(_model, greet, &"ana", &"neutral")
+	var result: ShantySaveResult = _model.save()
+
+	assert_true(result.saved, result.message)
+	assert_eq(result.csv_path, Fixture.CSV_PATH)
+	assert_eq(result.resource_paths.size(), 2)
+	assert_true(Fixture.csv_on_disk().contains("DLG_TALK_03"))
+	assert_true(FileAccess.file_exists(Fixture.CONVERSATIONS + "/greet.tres"))
+	assert_false(_model.is_dirty())
+	for path: String in result.staged_paths:
+		assert_false(FileAccess.file_exists(path), "%s was removed" % path)

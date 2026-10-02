@@ -10,7 +10,9 @@ extends RefCounted
 ## **Save never overwrites what it has not seen.** Each file's hash is taken
 ## when it is read; a file that changed on disk since then refuses the whole
 ## save before anything is written. **Lint errors refuse it too**; warnings
-## and coverage never do. Edits to speakers and conversations live in
+## and coverage never do. **Save is all or nothing**: every file is staged
+## before any is replaced, and a failure at any point leaves every original
+## byte on disk. Edits to speakers and conversations live in
 ## `ShantySpeakerEdits` and `ShantyConversationEdits`.
 
 ## Emitted after any edit, so the panes can redraw.
@@ -149,7 +151,7 @@ func lint() -> Array[ShantyLintIssue]:
 
 
 ## Lints, refuses on an error or a stale file, then writes the CSV and every
-## edited resource. Nothing is written unless everything may be.
+## edited resource all or nothing.
 func save() -> ShantySaveResult:
 	var issues: Array[ShantyLintIssue] = lint()
 	var errors: int = ShantyLint.errors_in(issues).size()
@@ -191,26 +193,32 @@ func _paths_to_write() -> PackedStringArray:
 	return paths
 
 
+## Stages every output, then commits them together (`ShantySaveTransaction`):
+## any failure leaves every file as it was and every edit still unsaved.
 func _write(issues: Array[ShantyLintIssue]) -> ShantySaveResult:
+	var transaction := ShantySaveTransaction.new()
+	var resources: Array[Resource] = _dirty.duplicate()
+	var staged: bool = not _csv_dirty or transaction.stage_text(config.csv_path, document.to_text())
+	for resource: Resource in resources:
+		staged = staged and transaction.stage_resource(resource, path_of(resource))
+	var committed: bool = staged and transaction.commit()
+	transaction.discard()
 	var result := ShantySaveResult.new()
 	result.issues = issues
+	result.staged_paths = transaction.staged_paths()
+	if not committed:
+		result.message = "Not saved: %s Every file is as it was." % transaction.failure
+		return result
 	if _csv_dirty:
-		var error: Error = ShantyFiles.write_text(config.csv_path, document.to_text())
-		if error != OK:
-			return ShantySaveResult.refused("Could not write %s (%s)." % [config.csv_path, error])
 		_hashes[config.csv_path] = ShantyFiles.hash_of(config.csv_path)
 		result.csv_path = config.csv_path
 		_csv_dirty = false
-	for resource: Resource in _dirty.duplicate():
+	for resource: Resource in resources:
 		var path: String = path_of(resource)
-		var error: Error = ShantyFiles.save_resource(resource, path)
-		if error != OK:
-			result.message = "Could not write %s (%s)." % [path, error]
-			return result
 		_hashes[path] = ShantyFiles.hash_of(path)
 		_new_paths.erase(resource)
-		_dirty.erase(resource)
 		result.resource_paths.append(path)
+	_dirty.clear()
 	result.saved = true
 	var count: int = result.resource_paths.size() + (0 if result.csv_path.is_empty() else 1)
 	result.message = "Saved %d file%s." % [count, "" if count == 1 else "s"]

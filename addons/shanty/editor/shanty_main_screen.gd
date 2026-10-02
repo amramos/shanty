@@ -164,9 +164,12 @@ func _save() -> void:
 	var result: ShantySaveResult = _model.save()
 	_show_issues(result.issues)
 	_say(result.message)
+	var files: EditorFileSystem = EditorInterface.get_resource_filesystem()
+	# Saving a staged resource told the editor about it; it is gone again.
+	for path: String in result.staged_paths:
+		files.update_file(path)
 	if not result.saved:
 		return
-	var files: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	for path: String in result.resource_paths:
 		files.update_file(path)
 	if not result.csv_path.is_empty():
