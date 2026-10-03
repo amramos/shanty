@@ -21,8 +21,11 @@ the config gains one optional field.
   the scheme's scene patterns and their two rows written as one block after the other scenes';
   Skippable and Remembered; the steps in order, added, inserted after any step, moved and removed
   without touching the others, each new step opened in the Inspector and each row summarised from
-  its values (`Say: lamp_talk`, `Fade in 0.5 s`). A Say row opens its conversation. Step types come
-  from `ShantyClassCatalog`, `AnimateStep` and `VideoStep` hidden while unbuilt.
+  its values (`Say: lamp_talk`, `Fade in 0.5 s`). A Backdrop row picks its still and a Say row its
+  conversation in place through an `EditorResourcePicker`, written through
+  `ShantySceneEdits.set_step_property()`; the Inspector holds the other values. A Say row opens its
+  conversation. Step types come from `ShantyClassCatalog`, `AnimateStep` and `VideoStep` hidden
+  while unbuilt.
 - **A trigger pane.** The moment, chosen from the config's `trigger_ids` when it lists them and
   typed when it does not; candidates with a scene picked from the scenes folder, a priority (any
   whole number a 64-bit int holds, typed, as `StoryCandidate.priority` allows: the tab sets no range

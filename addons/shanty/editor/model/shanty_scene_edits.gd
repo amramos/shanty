@@ -5,8 +5,9 @@ extends RefCounted
 ## Edits to scenes, over a `ShantyEditorModel`. A scene's title and synopsis are
 ## keys in the same CSV as every line, named by the scheme's scene patterns and
 ## given their rows as one contiguous block after the other scenes' rows. Its
-## steps are added, inserted, moved and removed here; each step's own values are
-## edited in the Inspector, and summarised for its row by `summary()`.
+## steps are added, inserted, moved and removed here; a step's still or
+## conversation is set here too (`set_step_property()`), its other values in the
+## Inspector, and each step is summarised for its row by `summary()`.
 
 const ID_PATTERN: String = "^[a-z0-9_]+$"
 ## The two key properties a scene carries, in the order their rows are written.
@@ -145,6 +146,31 @@ static func remove_step(model: ShantyEditorModel, scene: CutsceneDefinition, ind
 	return true
 
 
+## Sets one value of step `index` -- a Backdrop's `texture`, a Say's
+## `conversation` -- and marks the scene edited. False, changing nothing, for an
+## index outside the scene, a property the step does not have, or a value the
+## property cannot hold.
+static func set_step_property(
+	model: ShantyEditorModel,
+	scene: CutsceneDefinition,
+	index: int,
+	property: StringName,
+	value: Variant
+) -> bool:
+	if index < 0 or index >= scene.steps.size() or scene.steps[index] == null:
+		return false
+	var step: CutsceneStep = scene.steps[index]
+	if not _has_property(step, property):
+		return false
+	var before: Variant = step.get(property)
+	step.set(property, value)
+	if step.get(property) != value:
+		step.set(property, before)
+		return false
+	model.touch(scene)
+	return true
+
+
 ## The conversation a Say step plays, or null for any other step.
 static func conversation_of(step: CutsceneStep) -> ConversationDefinition:
 	return (step as SayStep).conversation if step is SayStep else null
@@ -203,6 +229,13 @@ static func _file_name(resource: Resource, fallback: String) -> String:
 		return fallback
 	var file: String = resource.resource_path.get_file()
 	return file if not file.is_empty() and not file.contains("::") else resource.get_class()
+
+
+static func _has_property(step: CutsceneStep, property: StringName) -> bool:
+	for entry: Dictionary in step.get_property_list():
+		if StringName(entry["name"]) == property:
+			return true
+	return false
 
 
 ## True when a speaker or a conversation names `key`, so its row must stay.

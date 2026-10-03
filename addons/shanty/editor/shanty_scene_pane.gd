@@ -3,9 +3,11 @@ extends VBoxContainer
 
 ## The scene form: its id, the title and synopsis -- each a key in the CSV with
 ## a source and a target cell, like a line -- Skippable and Remembered, and the
-## ordered steps. A step's row says what it does; Edit opens it in the
-## Inspector, where its values are edited; a Say step's row also opens its
-## conversation. Every change goes through `ShantySceneEdits`.
+## ordered steps. A step's row says what it does; in the editor a Backdrop row
+## picks its still and a Say row its conversation through the editor's own
+## resource picker; Edit opens the step in the Inspector for its other values;
+## a Say step's row also opens its conversation. Every change goes through
+## `ShantySceneEdits`.
 
 signal inspect_requested(resource: Resource, owner: Resource)
 ## The writer asked to see the conversation a Say step plays.
@@ -16,6 +18,7 @@ const CellEdit := preload("res://addons/shanty/editor/shanty_cell_edit.gd")
 const PickerMenu := preload("res://addons/shanty/editor/shanty_picker_menu.gd")
 const STEP_BASE: StringName = &"CutsceneStep"
 const CAPTION_WIDTH: float = 100.0
+const PICKER_WIDTH: float = 160.0
 
 var _model: ShantyEditorModel = null
 var _scene: CutsceneDefinition = null
@@ -159,6 +162,9 @@ func _step_row(index: int) -> HBoxContainer:
 	summary.size_flags_horizontal = SIZE_EXPAND_FILL
 	summary.clip_text = true
 	row.add_child(summary)
+	var picker: Control = _value_picker(index)
+	if picker != null:
+		row.add_child(picker)
 	var conversation: ConversationDefinition = ShantySceneEdits.conversation_of(step)
 	if conversation != null:
 		_add_button(
@@ -192,6 +198,32 @@ func _step_row(index: int) -> HBoxContainer:
 				rebuild()
 	)
 	return row
+
+
+## The editor's resource picker for the step's still or conversation, writing
+## through the model; null headless, where the summary shows the value, and
+## for any other step.
+func _value_picker(index: int) -> Control:
+	var step: CutsceneStep = _scene.steps[index]
+	if not Engine.is_editor_hint() or not (step is BackdropStep or step is SayStep):
+		return null
+	var property: StringName = &"texture" if step is BackdropStep else &"conversation"
+	var picker := EditorResourcePicker.new()
+	picker.base_type = "Texture2D" if step is BackdropStep else "ConversationDefinition"
+	picker.edited_resource = step.get(property)
+	picker.custom_minimum_size.x = PICKER_WIDTH
+	picker.tooltip_text = "This step's %s" % property
+	picker.resource_changed.connect(
+		func(picked: Resource) -> void:
+			if ShantySceneEdits.set_step_property(_model, _scene, index, property, picked):
+				rebuild.call_deferred()
+			else:
+				picker.edited_resource = step.get(property)
+	)
+	picker.resource_selected.connect(
+		func(picked: Resource, _inspect: bool) -> void: inspect_requested.emit(picked, _scene)
+	)
+	return picker
 
 
 func _on_step_picked(script_path: String, after: int) -> void:

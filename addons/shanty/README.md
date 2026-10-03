@@ -392,9 +392,11 @@ The centre edits what you picked:
   your other scenes' — **Skippable**, **Remembered**, and its steps in order. **+ Step** and each
   step's **Insert after** offer every step type your project declares (every subclass of
   `CutsceneStep`; `AnimateStep` and `VideoStep` are hidden while unbuilt); the new step opens in the
-  Inspector, where its values are edited, and **Edit** opens it again. Each row says what its step
-  does — `Say: lamp_talk`, `Backdrop: dawn.png, letterbox`, `Fade in 0.5 s` — and a Say row's **Open
-  conversation** jumps the centre to the lines it plays. **↑**, **↓** and **Remove** reorder and
+  Inspector, where its values are edited, and **Edit** opens it again. A Backdrop row picks its still
+  and a Say row its conversation in place, through the editor's own resource picker; the Inspector
+  holds every other value. Each row says what its step does — `Say: lamp_talk`, `Backdrop: dawn.png,
+  letterbox`, `Fade in 0.5 s` — and a Say row's **Open conversation** jumps the centre to the lines
+  it plays. **↑**, **↓** and **Remove** reorder and
   remove steps without touching the others. A scene without a synopsis offers **+ Synopsis**.
 - **A trigger**: the moment it answers — chosen from your config's `trigger_ids` when it lists
   them, typed when it does not — and its candidates: each a scene picked from your scenes folder, a

@@ -193,3 +193,33 @@ func test_a_new_scene_saying_a_new_conversation_names_its_file() -> void:
 	assert_string_contains(text, 'path="%s/lamp_talk.tres"' % Fixture.CONVERSATIONS)
 	assert_false(text.contains('ConversationDefinition" id='), "not a copy embedded in the scene")
 	assert_eq(conversation.resource_path, Fixture.CONVERSATIONS + "/lamp_talk.tres")
+
+
+func test_a_steps_still_and_conversation_are_set_through_the_model() -> void:
+	var scene: CutsceneDefinition = ShantySceneEdits.add_scene(_model, "opening")
+	ShantySceneEdits.add_step(_model, scene, BACKDROP)
+	ShantySceneEdits.add_step(_model, scene, SAY)
+	assert_true(_model.save().saved)
+	var still: Texture2D = load("res://addons/shanty/editor/shanty_icon.svg")
+	var talk: ConversationDefinition = _model.conversations[0]
+
+	assert_true(ShantySceneEdits.set_step_property(_model, scene, 0, &"texture", still))
+	assert_true(_model.is_dirty(), "the scene is marked edited")
+	assert_true(ShantySceneEdits.set_step_property(_model, scene, 1, &"conversation", talk))
+	assert_eq(ShantySceneEdits.summary(scene.steps[0]), "Backdrop: shanty_icon.svg")
+	assert_eq(ShantySceneEdits.summary(scene.steps[1]), "Say: talk")
+	assert_false(ShantySceneEdits.set_step_property(_model, scene, 2, &"texture", still), "no step")
+	assert_false(ShantySceneEdits.set_step_property(_model, scene, 1, &"texture", still))
+	assert_false(
+		ShantySceneEdits.set_step_property(_model, scene, 1, &"conversation", still),
+		"a texture is no conversation"
+	)
+	assert_eq((scene.steps[1] as SayStep).conversation, talk, "a refusal changes nothing")
+	assert_true(ShantySceneEdits.set_step_property(_model, scene, 0, &"texture", null), "cleared")
+	ShantySceneEdits.set_step_property(_model, scene, 0, &"texture", still)
+	assert_true(_model.save().saved)
+	var reopened := ShantyEditorModel.new()
+	reopened.open(Fixture.config(), true)
+	var loaded: CutsceneDefinition = ShantySceneEdits.find(reopened, &"opening")
+	assert_eq((loaded.steps[0] as BackdropStep).texture.resource_path, still.resource_path)
+	assert_eq(ShantySceneEdits.summary(loaded.steps[1]), "Say: talk", "a reference to its file")
