@@ -10,6 +10,15 @@ extends RefCounted
 ## it was; a failure while committing also writes back, from the bytes kept in
 ## memory, every target already replaced, and removes the targets that did not
 ## exist before.
+##
+## **A staged resource keeps its target's `ext_resource` ids.** The text saver
+## keys each external resource's id by the path being written, so a file saved
+## at its staging path would otherwise get a fresh id for every external
+## resource and every `ExtResource()` naming one -- a one-field edit churning
+## the whole file's diff. Before a resource is staged, every external resource
+## it names is given, for the staging path, the id it has in the target; after
+## a commit the target is given whatever the staging path ended up with (a new
+## reference's fresh id), so the next save is stable too.
 
 ## How a staged file replaces its target: `(staged, target) -> Error`. A test
 ## swaps in one that fails, to prove the rollback.
@@ -40,7 +49,7 @@ func stage_text(path: String, text: String) -> bool:
 
 ## Stages `resource` as the next content of `path`. The staged file starts as
 ## a copy of the original, so the saver finds the uid the file already carries
-## and the replaced file keeps it.
+## and the replaced file keeps it; its `ext_resource` ids are the original's.
 func stage_resource(resource: Resource, path: String) -> bool:
 	var staged: String = ShantyFiles.resource_staging_path(path)
 	_remember(path, staged, resource)
@@ -48,6 +57,7 @@ func stage_resource(resource: Resource, path: String) -> bool:
 	if ShantyFiles.exists(path):
 		error = ShantyFiles.copy(path, staged)
 	if error == OK:
+		_carry_ids(resource, path, staged)
 		error = ShantyFiles.save_resource(resource, staged)
 	if error != OK or ShantyFiles.read_bytes(staged).is_empty():
 		return _fail("could not write %s (%s)." % [path, error_string(error)])
@@ -71,13 +81,16 @@ func commit() -> bool:
 	for index: int in _targets.size():
 		if _resources[index] != null:
 			ShantyFiles.take_over(_resources[index], _targets[index])
+			_carry_ids(_resources[index], _staged[index], _targets[index])
 	return true
 
 
-## Removes every staged file still on disk.
+## Removes every staged file still on disk, and the ids kept for its path.
 func discard() -> void:
-	for staged: String in _staged:
-		ShantyFiles.remove(staged)
+	for index: int in _staged.size():
+		ShantyFiles.remove(_staged[index])
+		if _resources[index] != null:
+			_carry_ids(_resources[index], "", _staged[index])
 
 
 func _remember(path: String, staged: String, resource: Resource) -> void:
@@ -102,3 +115,58 @@ func _roll_back(through: int) -> void:
 func _fail(reason: String) -> bool:
 	failure = reason
 	return false
+
+
+## Gives every external resource `resource` names, for the file `to`, the id it
+## has in the file `from`; an empty `from` clears the ids kept for `to`.
+static func _carry_ids(resource: Resource, from: String, to: String) -> void:
+	var source: String = ProjectSettings.localize_path(from) if not from.is_empty() else ""
+	var target: String = ProjectSettings.localize_path(to)
+	for external: Resource in _external_resources(resource):
+		external.set_id_for_path(
+			target, external.get_id_for_path(source) if not source.is_empty() else ""
+		)
+
+
+## Every resource saved in its own file that `resource` names, as the saver
+## finds them: through stored properties, the resources built into the file,
+## arrays, dictionaries and a typed collection's script.
+static func _external_resources(resource: Resource) -> Array[Resource]:
+	var found: Array[Resource] = []
+	var visited: Dictionary[Resource, bool] = {resource: true}
+	_collect_properties(resource, found, visited)
+	return found
+
+
+static func _collect_properties(
+	resource: Resource, found: Array[Resource], visited: Dictionary[Resource, bool]
+) -> void:
+	for property: Dictionary in resource.get_property_list():
+		if int(property["usage"]) & PROPERTY_USAGE_STORAGE:
+			_collect(resource.get(property["name"]), found, visited)
+
+
+static func _collect(
+	value: Variant, found: Array[Resource], visited: Dictionary[Resource, bool]
+) -> void:
+	if value is Resource:
+		var resource: Resource = value
+		if visited.has(resource):
+			return
+		visited[resource] = true
+		if resource.is_built_in():
+			_collect_properties(resource, found, visited)
+		else:
+			found.append(resource)
+	elif value is Array:
+		var array: Array = value
+		_collect(array.get_typed_script(), found, visited)
+		for item: Variant in array:
+			_collect(item, found, visited)
+	elif value is Dictionary:
+		var dictionary: Dictionary = value
+		_collect(dictionary.get_typed_key_script(), found, visited)
+		_collect(dictionary.get_typed_value_script(), found, visited)
+		for key: Variant in dictionary:
+			_collect(key, found, visited)
+			_collect(dictionary[key], found, visited)

@@ -40,7 +40,9 @@ pure checks it shares with a host's own tests. Scenes, triggers, the line previe
   only then moves them over their targets (`ShantySaveTransaction`); a failure at any point leaves
   every file as it was, putting back any target already replaced. New rows go in as one block after
   their conversation's last row, changed resources are saved through `ResourceSaver`, and the CSV is
-  reimported once the editor's filesystem is idle — never a scan during a scan.
+  reimported once the editor's filesystem is idle — never a scan during a scan. A staged resource
+  keeps its target's `ext_resource` ids (the text saver keys them by the path it writes), so a
+  one-field edit changes exactly one line of the file, ids and uids untouched.
 - **A CSV's bytes are kept outside the rows you edit.** Every untouched row is written back byte for
   byte with its own line ending (LF or CRLF, mixed as the file mixes them); an edited row keeps its
   ending and a new row takes the file's dominant one; a byte-order mark and a missing final line

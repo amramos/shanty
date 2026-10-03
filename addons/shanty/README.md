@@ -410,7 +410,11 @@ It never overwrites rows it has not seen.
 **Save is all or nothing.** Every file is first written beside its target (`<file>.shanty-tmp`, or
 `<name>.shanty-tmp.tres` for a resource) and read back; only when every one is ready are they moved
 over their targets. If any write fails, every file is left exactly as it was — a target already
-replaced is put back from the bytes read before the save — and your edits stay unsaved. If the
+replaced is put back from the bytes read before the save — and your edits stay unsaved. A staged
+resource keeps its target's `ext_resource` ids, so a one-field edit changes one line of the file:
+the ids, every `ExtResource()` naming one, and the uids stay as they were. What else differs is
+Godot's own form for the file, as any editor save writes it — properties in the script's order, a
+default value left out, a uid added to a hand-written `ext_resource` line. If the
 editor is scanning or importing when you save, the tab waits for it to finish before it asks for
 the reimport.
 

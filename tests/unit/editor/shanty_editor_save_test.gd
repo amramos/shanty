@@ -5,6 +5,25 @@ extends GutTest
 ## lint error or a file someone else changed, and never on an empty locale.
 
 const Fixture := preload("res://tests/support/editor_fixture.gd")
+## Two external resources (the two scripts), with ids a hand would write. The
+## text saver keys an `ext_resource` id by the path it writes; a save staged
+## anywhere else once renamed every id and every `ExtResource()` naming one.
+const KEEPER: String = """[gd_resource type="Resource" script_class="SpeakerDefinition" format=3]
+
+[ext_resource type="Script" path="res://addons/shanty/data/speaker_face.gd" id="1_face"]
+[ext_resource type="Script" path="res://addons/shanty/data/speaker_definition.gd" id="2_speaker"]
+
+[sub_resource type="Resource" id="Resource_keeper_neutral"]
+script = ExtResource("1_face")
+tag = &"neutral"
+
+[resource]
+script = ExtResource("2_speaker")
+speaker_id = &"keeper"
+name_key = "SPEAKER_KEEPER"
+faces = Array[ExtResource("1_face")]([SubResource("Resource_keeper_neutral")])
+colour_variation = &"Before"
+"""
 
 var _model: ShantyEditorModel
 
@@ -99,6 +118,37 @@ func test_a_short_row_never_refuses_and_keeps_its_bytes() -> void:
 	assert_eq(
 		Fixture.csv_on_disk(), source.replace("DLG_TALK_02,Bye.,,\n", "DLG_TALK_02,Bye.,Tchau.,\n")
 	)
+
+
+func test_a_one_field_edit_changes_only_that_line_of_its_resource() -> void:
+	var path: String = Fixture.SPEAKERS + "/keeper.tres"
+	ShantyFiles.write_text(Fixture.CSV_PATH, Fixture.CSV + "SPEAKER_KEEPER,Keeper,Guardião,\n")
+	ShantyFiles.write_text(path, KEEPER)
+	# A same-path resave first, so the file is in the form this Godot writes
+	# here (the editor adds each script's uid); only Shanty's save is measured.
+	ResourceSaver.save(ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE), path)
+	_model.reload()
+	var before: PackedStringArray = ShantyFiles.read_text(path).split("\n")
+	var keeper: SpeakerDefinition = null
+	for speaker: SpeakerDefinition in _model.speakers:
+		if speaker.speaker_id == &"keeper":
+			keeper = speaker
+	keeper.colour_variation = &"After"
+	_model.touch(keeper)
+	var result: ShantySaveResult = _model.save()
+	var after: PackedStringArray = ShantyFiles.read_text(path).split("\n")
+
+	assert_true(result.saved, result.message)
+	assert_eq(
+		Array(before).filter(func(line: String) -> bool: return line.begins_with("[ext_")).size(), 2
+	)
+	assert_eq(after.size(), before.size(), "no line added or dropped")
+	var changed: PackedStringArray = []
+	for index: int in mini(before.size(), after.size()):
+		if before[index] != after[index]:
+			changed.append(after[index])
+	assert_eq(changed, PackedStringArray(['colour_variation = &"After"']), "ids and uids kept")
+	assert_true(after.has('script = ExtResource("1_face")'), "a hand-written id survives")
 
 
 func test_a_csv_changed_on_disk_refuses_the_save() -> void:
