@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StoryTriggerDefinition" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://addons/shanty/data/story_trigger_definition.gd" id="1_trigger"]
+[ext_resource type="Script" path="res://addons/shanty/data/story_candidate.gd" id="2_candidate"]
+[ext_resource type="Resource" path="res://addons/shanty/example/example_scene.tres" id="3_scene"]
+
+[sub_resource type="Resource" id="Resource_candidate"]
+script = ExtResource("2_candidate")
+cutscene = ExtResource("3_scene")
+
+[resource]
+script = ExtResource("1_trigger")
+trigger_id = &"lamp"
+candidates = Array[ExtResource("2_candidate")]([SubResource("Resource_candidate")])
