@@ -54,7 +54,7 @@ static func add_rows(csv: ShantyCsvDocument) -> PackedStringArray:
 
 
 ## The first locale column in `ShantyHostContract.DEFAULT_TEXT_LOCALE` -- `en`,
-## or a regional `en_GB` or `en-US` -- or "" when the CSV has none.
+## or a variant such as `en_GB` or `en-US` -- or "" when the CSV has none.
 static func english_column(csv: ShantyCsvDocument) -> String:
 	for locale: String in csv.locales():
 		var language: String = locale.replace("-", "_").get_slice("_", 0)
