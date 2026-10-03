@@ -34,3 +34,7 @@ enabled=PackedStringArray("res://addons/shanty/plugin.cfg")
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+[shanty]
+
+config_path="res://addons/shanty/example/shanty_config.tres"

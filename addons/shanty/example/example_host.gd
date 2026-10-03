@@ -89,7 +89,8 @@ func player() -> CutscenePlayer:
 
 ## One Translation per locale column of the CSV at `path`, in Godot's own CSV
 ## shape: a `keys` column, then one column per locale; a column whose header
-## starts with `_` is a note and is skipped.
+## starts with `_` is a note and is skipped. An empty cell adds no message, so
+## a locale that is still being translated falls back rather than going blank.
 static func load_translations(path: String) -> Array[Translation]:
 	var translations: Array[Translation] = []
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
@@ -110,7 +111,8 @@ static func load_translations(path: String) -> Array[Translation]:
 		if row.size() < header.size() or row[0].is_empty():
 			continue
 		for column: int in columns:
-			columns[column].add_message(row[0], row[column])
+			if not row[column].is_empty():
+				columns[column].add_message(row[0], row[column])
 	return translations
 
 

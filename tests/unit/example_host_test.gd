@@ -110,7 +110,7 @@ func test_a_replay_of_the_record_applies_nothing() -> void:
 	assert_eq(offered[0], 0, "a replay speaks the recorded reply and offers none")
 
 
-func test_every_key_the_example_uses_is_in_both_of_its_languages() -> void:
+func test_every_key_the_example_uses_is_in_its_finished_languages() -> void:
 	var keys := PackedStringArray(
 		[
 			"SHANTY_EXAMPLE_PLAY",
@@ -132,9 +132,21 @@ func test_every_key_the_example_uses_is_in_both_of_its_languages() -> void:
 	var locales := PackedStringArray()
 	for translation: Translation in translations:
 		locales.append(translation.locale)
+		# `fr` is deliberately partial: it gives the Shanty tab's coverage strip a gap to show.
+		if translation.locale == "fr":
+			continue
 		for key: String in keys:
 			var message: String = String(translation.get_message(key))
 			assert_false(message.is_empty(), "%s has %s" % [translation.locale, key])
 
-	assert_eq(locales, PackedStringArray(["en", "pt_BR"]), "the `_notes` column is skipped")
+	assert_eq(
+		locales,
+		PackedStringArray(["en", "pt_BR", "fr"]),
+		"the `_notes` and `_flags` columns are skipped"
+	)
+	var french: Translation = translations[2]
+	assert_eq(String(french.get_message("SHANTY_EXAMPLE_LINE_1")).is_empty(), false)
+	assert_eq(
+		String(french.get_message("SHANTY_EXAMPLE_LINE_3")), "", "an empty cell adds no message"
+	)
 	assert_false(ShantyRunner.has_cycle(CONVERSATION))

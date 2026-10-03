@@ -5,6 +5,12 @@ extends GutTest
 ## as a `uid://` that resolves to one -- no script may load a path it builds at
 ## runtime, and no script may lean on a global class the host would have to
 ## supply. A failure names the file.
+##
+## **One exception, by name.** The Shanty tab opens the host's own files -- its
+## config, its CSV, its speakers and conversations -- at paths the host's config
+## names, so exactly one script may load a path it is handed:
+## `HOST_FILE_READER`. Every other script still loads only literal paths inside
+## the addon, and the exception is held to that one file.
 
 const AddonFiles := preload("res://tests/support/addon_files.gd")
 const GdSource := preload("res://tests/support/gd_source.gd")
@@ -15,6 +21,7 @@ const SCRIPT_CLASS_PATTERN: String = 'script_class="([A-Za-z_][A-Za-z0-9_]*)"'
 const UID_PATTERN: String = "uid://[0-9a-z]+"
 ## `load(`, `preload(` and `ResourceLoader.load(` alike.
 const LOAD_CALL: String = "\\b(?:preload|load)"
+const HOST_FILE_READER: String = "res://addons/shanty/editor/model/shanty_files.gd"
 
 
 func _addon_classes() -> Dictionary[StringName, bool]:
@@ -105,6 +112,8 @@ func test_every_load_names_a_fixed_path_inside_the_addon() -> void:
 	var refused: PackedStringArray = []
 	var checked: int = 0
 	for path: String in AddonFiles.list(AddonFiles.ADDON_ROOT, ["gd"]):
+		if path == HOST_FILE_READER:
+			continue
 		var source: String = GdSource.strip_comments(AddonFiles.read(path))
 		for arguments: PackedStringArray in GdSource.call_arguments(source, LOAD_CALL):
 			var call_text: String = "%s: load(%s)" % [path, ", ".join(arguments)]
@@ -120,6 +129,18 @@ func test_every_load_names_a_fixed_path_inside_the_addon() -> void:
 			checked += 1
 	assert_eq(refused, PackedStringArray(), "every load names a literal path inside the addon")
 	assert_gt(checked, 3, "the scan found the addon's loads")
+
+
+func test_only_the_host_file_reader_loads_a_path_it_is_handed() -> void:
+	var source: String = GdSource.strip_comments(AddonFiles.read(HOST_FILE_READER))
+	var calls: Array[PackedStringArray] = GdSource.call_arguments(source, LOAD_CALL)
+
+	assert_eq(calls.size(), 1, "the reader funnels every host load through one call")
+	assert_eq(
+		GdSource.resolve_single(calls[0][0], source),
+		"",
+		"and that call is the runtime path the exception exists for"
+	)
 
 
 func test_the_load_scan_refuses_a_constructed_path() -> void:

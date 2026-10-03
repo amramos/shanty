@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="ShantyProjectConfig" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://addons/shanty/lint/shanty_project_config.gd" id="1_config"]
+[ext_resource type="Script" path="res://addons/shanty/lint/shanty_flag_rule.gd" id="2_flag"]
+[ext_resource type="Script" path="res://addons/shanty/lint/shanty_key_scheme.gd" id="3_scheme"]
+
+[sub_resource type="Resource" id="Resource_neutral"]
+script = ExtResource("2_flag")
+flag = "NEUTRAL"
+forbidden_words = Dictionary[String, PackedStringArray]({
+"en": PackedStringArray("he", "she", "him", "her", "his", "hers")
+})
+
+[sub_resource type="Resource" id="Resource_scheme"]
+script = ExtResource("3_scheme")
+conversation_prefix = "SHANTY_EXAMPLE_{ID}"
+reply_key = "{LINE}_{LETTER}"
+speaker_name_key = "SHANTY_EXAMPLE_SPEAKER_{ID}"
+scene_title_key = "SHANTY_EXAMPLE_TITLE_{ID}"
+scene_synopsis_key = "SHANTY_EXAMPLE_SYNOPSIS_{ID}"
+number_digits = 1
+
+[resource]
+script = ExtResource("1_config")
+csv_path = "res://addons/shanty/example/example_strings.csv"
+required_locales = PackedStringArray("en", "pt_BR")
+source_locale = "en"
+flags = Array[ExtResource("2_flag")]([SubResource("Resource_neutral")])
+key_scheme = SubResource("Resource_scheme")
+speakers_folder = "res://addons/shanty/example"
+conversations_folder = "res://addons/shanty/example"
+scenes_folder = "res://addons/shanty/example"
+triggers_folder = "res://addons/shanty/example"
+length_cap = 120

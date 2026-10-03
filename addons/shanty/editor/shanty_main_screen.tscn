@@ -1,0 +1,79 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://addons/shanty/editor/shanty_main_screen.gd" id="1_screen"]
+[ext_resource type="Script" path="res://addons/shanty/editor/shanty_toolbar.gd" id="2_toolbar"]
+[ext_resource type="Script" path="res://addons/shanty/editor/shanty_list_pane.gd" id="3_list"]
+[ext_resource type="Script" path="res://addons/shanty/editor/shanty_speaker_form.gd" id="4_speaker"]
+[ext_resource type="Script" path="res://addons/shanty/editor/shanty_line_table.gd" id="5_table"]
+
+[node name="ShantyMainScreen" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_screen")
+
+[node name="Toolbar" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("2_toolbar")
+
+[node name="Panes" type="HSplitContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="Panes"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+script = ExtResource("3_list")
+
+[node name="Work" type="HSplitContainer" parent="Panes"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Centre" type="VBoxContainer" parent="Panes/Work"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Hint" type="Label" parent="Panes/Work/Centre"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Pick a speaker or a conversation on the left, or make one."
+
+[node name="SpeakerForm" type="VBoxContainer" parent="Panes/Work/Centre"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("4_speaker")
+
+[node name="LineTable" type="VBoxContainer" parent="Panes/Work/Centre"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("5_table")
+
+[node name="Preview" type="PanelContainer" parent="Panes/Work"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+
+[node name="PreviewNote" type="Label" parent="Panes/Work/Preview"]
+layout_mode = 2
+text = "The line preview and Play arrive in 0.3.0."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Issues" type="ItemList" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+
+[node name="Status" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2

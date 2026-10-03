@@ -1,15 +1,15 @@
-keys,en,pt_BR,_notes
-SHANTY_EXAMPLE_PLAY,Play the scene,Tocar a cena,Example host's first button
-SHANTY_EXAMPLE_REPLAY,Read it again,Ler de novo,"Example host's second button; replays the last record, read-only"
-SHANTY_EXAMPLE_TITLE,The Lamp,A Lanterna,Scene title for a host's replay list
-SHANTY_EXAMPLE_SYNOPSIS,{name:visitor} came back to the lighthouse.,{name:visitor} voltou ao farol.,One-sentence synopsis; the speaker is named by token so a renamed speaker follows
-SHANTY_EXAMPLE_SPEAKER_KEEPER,The Keeper,O Faroleiro,Speaker name plate
-SHANTY_EXAMPLE_SPEAKER_VISITOR,The Visitor,A Visita,Speaker name plate
-SHANTY_EXAMPLE_LINE_1,You came back. The [hl]lamp[/hl] has been dark since you left.,Você voltou. A [hl]lanterna[/hl] está apagada desde que você partiu.,The keeper; shown only while example_lamp_dark is set
-SHANTY_EXAMPLE_LINE_2,"I said I would, {name:keeper}.","Eu disse que voltaria, {name:keeper}.",The visitor
-SHANTY_EXAMPLE_LINE_3,"Will you light it tonight, or shall I?","Você acende hoje, ou acendo eu?",The keeper asks; the visitor answers
-SHANTY_EXAMPLE_REPLY_A,I will light it.,Eu acendo.,Sets example_visitor_lit_lamp
-SHANTY_EXAMPLE_REPLY_B,You light it. I will watch.,Acenda você. Eu fico olhando.,Sets example_keeper_lit_lamp
-SHANTY_HOLD_TO_SKIP,Hold to skip,Segure para pular,One of the three keys every host declares: the skip affordance's caption
-SHANTY_REPLY_PLACEHOLDER,…,…,One of the three keys every host declares: stands in the line while replies wait
-SHANTY_READING_AGAIN,Reading again,Lendo de novo,One of the three keys every host declares: a replay's caption
+keys,en,pt_BR,fr,_notes,_flags
+SHANTY_EXAMPLE_PLAY,Play the scene,Tocar a cena,Jouer la scène,Example host's first button,
+SHANTY_EXAMPLE_REPLAY,Read it again,Ler de novo,,"Example host's second button; replays the last record, read-only",
+SHANTY_EXAMPLE_TITLE,The Lamp,A Lanterna,La Lampe,Scene title for a host's replay list,
+SHANTY_EXAMPLE_SYNOPSIS,{name:visitor} came back to the lighthouse.,{name:visitor} voltou ao farol.,,One-sentence synopsis; the speaker is named by token so a renamed speaker follows,NEUTRAL
+SHANTY_EXAMPLE_SPEAKER_KEEPER,The Keeper,O Faroleiro,Le Gardien,Speaker name plate,
+SHANTY_EXAMPLE_SPEAKER_VISITOR,The Visitor,A Visita,La Visite,Speaker name plate,
+SHANTY_EXAMPLE_LINE_1,You came back. The [hl]lamp[/hl] has been dark since you left.,Você voltou. A [hl]lanterna[/hl] está apagada desde que você partiu.,Te revoilà. La [hl]lampe[/hl] est éteinte depuis ton départ.,The keeper; shown only while example_lamp_dark is set,
+SHANTY_EXAMPLE_LINE_2,"I said I would, {name:keeper}.","Eu disse que voltaria, {name:keeper}.","Je l'avais dit, {name:keeper}.",The visitor,NEUTRAL
+SHANTY_EXAMPLE_LINE_3,"Will you light it tonight, or shall I?","Você acende hoje, ou acendo eu?",,The keeper asks; the visitor answers,
+SHANTY_EXAMPLE_LINE_3_A,I will light it.,Eu acendo.,Je l'allume.,Sets example_visitor_lit_lamp,
+SHANTY_EXAMPLE_LINE_3_B,You light it. I will watch.,Acenda você. Eu fico olhando.,,Sets example_keeper_lit_lamp,
+SHANTY_HOLD_TO_SKIP,Hold to skip,Segure para pular,Maintenir pour passer,One of the three keys every host declares: the skip affordance's caption,
+SHANTY_REPLY_PLACEHOLDER,…,…,…,One of the three keys every host declares: stands in the line while replies wait,
+SHANTY_READING_AGAIN,Reading again,Lendo de novo,Relecture,One of the three keys every host declares: a replay's caption,
