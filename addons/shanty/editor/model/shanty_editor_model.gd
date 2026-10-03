@@ -12,8 +12,8 @@ extends RefCounted
 ## save before anything is written. **Lint errors refuse it too**; warnings
 ## and coverage never do. **Save is all or nothing**: every file is staged
 ## before any is replaced, and a failure at any point leaves every original
-## byte on disk. Edits to speakers and conversations live in
-## `ShantySpeakerEdits` and `ShantyConversationEdits`.
+## byte on disk. Edits live in `ShantySpeakerEdits`, `ShantyConversationEdits`,
+## `ShantySceneEdits` and `ShantyTriggerEdits`.
 
 ## Emitted after any edit, so the panes can redraw.
 signal changed

@@ -9,7 +9,8 @@ installation, how to run the bundled lighthouse example and then build it again 
 host contract. What changed in each version is in its [CHANGELOG](addons/shanty/CHANGELOG.md).
 
 This repository is a Godot 4.7 project that opens straight into the example (run it with F5), with
-the plugin enabled: its **Shanty** tab opens on the example's conversation. To install Shanty, copy
+the plugin enabled: its **Shanty** tab opens on the example's conversation, scene and trigger, and
+its Play runs the example's scene in a game window. To install Shanty, copy
 `addons/shanty/` into your project; a release's source archive contains that folder and nothing
 else.
 

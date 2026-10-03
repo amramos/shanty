@@ -8,6 +8,60 @@ change the authored data's shape; every such change is marked **BREAKING** with 
 The topmost section is always the version in `plugin.cfg`, and a release tag `vX.Y.Z` always has
 its section here.
 
+## 0.3.0
+
+The editor surface for writers, second half: scenes and triggers edited in the Shanty tab, each
+line drawn in the host's own dialogue bar as it is typed, and Play, which runs a scene in a game
+window through the real player. No authored data changes shape, so nothing here is **BREAKING**;
+the config gains one optional field.
+
+### Added
+
+- **A scene pane.** Title and synopsis cells in the source and target locales, their keys named by
+  the scheme's scene patterns and their two rows written as one block after the other scenes';
+  Skippable and Remembered; the steps in order, added, inserted after any step, moved and removed
+  without touching the others, each new step opened in the Inspector and each row summarised from
+  its values (`Say: lamp_talk`, `Fade in 0.5 s`). A Say row opens its conversation. Step types come
+  from `ShantyClassCatalog`, `AnimateStep` and `VideoStep` hidden while unbuilt.
+- **A trigger pane.** The moment, chosen from the config's `trigger_ids` when it lists them and
+  typed when it does not; candidates with a scene picked from the scenes folder, a priority, `once`
+  and conditions, added, moved and removed. The left pane makes scenes and triggers too, and offers
+  a closed set's free ids for + Trigger.
+- **The line preview.** The picked line in the real `DialogueView` scene, instanced under a plain
+  `Control` carrying the project theme with the config's `theme_path` merged over it: the speaker's
+  name and face, `{name:}` tokens and `[hl]` words resolved from the tab's CSV as it is typed, in the
+  source or the target locale, and an asking line's reply turn as the view draws it. A test holds it
+  equal to a playing view showing the same line.
+- **Play.** The toolbar's Play writes the picked scene, or the picked trigger whose choice to play,
+  to `user://shanty_preview.cfg` and runs `editor/preview/preview_host.tscn` through
+  `EditorInterface.play_custom_scene()`. The preview host applies the locale, the highlight colour
+  and the theme in code, plays through the real `CutscenePlayer`, prints every effect and the
+  record, and closes on Escape. It is refused while the tab holds unsaved edits.
+- **`ShantyPreviewHost`**, the base a host extends for Play — `make_context()`,
+  `make_speaker_provider()`, `make_settings()`, `make_records()`, `make_translations()` — named by
+  the config's `preview_host_path`. With none named, Play uses the base: an empty context, the
+  config's speakers folder (`ShantyPreviewSpeakers`), default settings.
+- **Scene and trigger lint** (`ShantyLintStory`): errors `unplayable_scene` (a step this version does
+  not build, or a Say step whose conversation can loop), `unknown_trigger` (no id, or one outside a
+  closed `trigger_ids`), `duplicate_trigger` and `unknown_scene` (a candidate with no scene, or one
+  the scenes folder does not hold); warnings `empty_trigger` and `duplicate_candidate`.
+  `ShantyLint.check()` takes the triggers as an optional last argument.
+- **`ShantyProjectConfig.highlight_colour`**, the colour `[hl]` words draw in for the preview and
+  Play. `trigger_ids`, `theme_path` and `preview_host_path` are now read: the first by the lint and
+  the trigger pane, the others by the preview and Play.
+- **Model classes** for all of it, testable without the editor: `ShantySceneEdits`,
+  `ShantyTriggerEdits`, `ShantyPreviewModel` and `ShantyPlay`.
+- **The example plays from the tab:** `example/example_preview_host.gd` (its context, speakers and
+  strings), `example/example_trigger.tres` (the moment `lamp`), and a config naming both, with a
+  closed set of trigger ids and its highlight colour.
+
+### Fixed
+
+- A new resource saved alongside another new one that names it — a new scene saying a new
+  conversation — is written as a reference to that file, not as an embedded copy:
+  `ShantySaveTransaction.claim_paths()` names every new resource before anything is staged, and a
+  failed save takes the names back.
+
 ## 0.2.0
 
 The editor surface for writers, first half: a Shanty tab for speakers and conversations, and the
