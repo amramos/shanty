@@ -33,9 +33,11 @@ MIT licensed.
    Shanty**).
 3. **Point the tab at a config.** The setting names one `ShantyProjectConfig`: where your CSV and
    your resources live, and the rules the tab checks them by. It defaults to the example's config
-   inside the addon, so the tab first opens on the demo. Point it at a config of your own, or empty
-   it, press **Reload** in the tab and then **Create config…**, as
-   [the tutorial's first steps](#2-your-own-folder-and-config) do.
+   inside the addon, so the tab first opens on the demo. The toolbar's **Config ▾ > Create
+   config…** makes one of your own at any time — with a CSV that already holds the three
+   [host keys](#the-host-contract) every game declares — and points the setting at it, as
+   [the tutorial's second step](#2-your-own-folder-and-config) does. For a CSV you already have,
+   **Config ▾ > Add host keys** adds whichever of the three it lacks.
 
 Shanty brings no look of its own. The dialogue bar, its replies and name plate, the skip control
 and the ground behind a scene draw from your **project theme** through eight type variations
@@ -60,50 +62,66 @@ on the example:
 - **The left pane** lists **Speakers** (`keeper`, `visitor`), **Conversations** and **Scenes**
   (`shanty_example_lamp` each) and **Triggers** (`lamp`), with a field for a new id under them and
   **+ Speaker**, **+ Conversation**, **+ Scene** and **+ Trigger**.
-- **The toolbar** holds the **Source** and **Target** locale dropdowns (`en` and `pt_BR`), a *new
+- **The toolbar** holds the **Config ▾** menu (**Create config…**, **Open config in Inspector**,
+  **Add host keys**), the **Source** and **Target** locale dropdowns (`en` and `pt_BR`), a *new
   locale* field with **+ Locale**, the coverage strip — `en 14/14 · pt_BR 14/14 · fr 10/14` — and
   **Reload**, **Lint**, **Save** and **Play**.
 - **The centre** edits whatever you pick on the left; **the right pane** draws the line you are
   working on in the real dialogue bar; **the issues list** and **the status line** run along the
-  bottom.
+  bottom. The status line reads `Opened res://addons/shanty/example/example_strings.csv.`
 
 Pick the scene `shanty_example_lamp` and press **Play** to see, in a game window, what you are about
 to build. Close it with Escape.
 
 ### 2. Your own folder and config
 
-**The words file.** Make a folder `res://story/` (FileSystem dock: right-click `res://` >
-**Create New > Folder…**). Then, with any text editor, save these four lines in it as
-`dialogue_strings.csv`:
+**The folder.** Make `res://story/` (FileSystem dock: right-click `res://` > **Create New >
+Folder…**).
+
+**The config.** Open the toolbar's **Config ▾** and pick **Create config…** — it is there
+whatever the tab has open. Open `res://story/`, keep the name `shanty_config.tres`, and save. The
+tab writes a config whose CSV is `dialogue_strings.csv` beside it and whose four folders are
+`res://story`, points the setting at it, opens it, and hands it to the Inspector. The status line
+says
+`Created res://story/shanty_config.tres and pointed shanty/config_path at it. Its CSV and folders are in the Inspector.`
+Picking a file that already exists opens that config instead of overwriting it, and while the tab
+holds unsaved edits the menu refuses:
+`Save or Reload first: opening another config drops the unsaved edits.`
+
+**The words file.** The config made its CSV too, ready to write in:
 
 ```csv
-keys,en,pt_BR
-SHANTY_HOLD_TO_SKIP,Hold to skip,Segure para pular
-SHANTY_REPLY_PLACEHOLDER,…,…
-SHANTY_READING_AGAIN,Reading again,Lendo de novo
+keys,en,_flags,_notes
+SHANTY_HOLD_TO_SKIP,Hold to skip,,Shown by Shanty's own controls: see ShantyHostContract
+SHANTY_REPLY_PLACEHOLDER,…,,Shown by Shanty's own controls: see ShantyHostContract
+SHANTY_READING_AGAIN,Reading again,,Shown by Shanty's own controls: see ShantyHostContract
 ```
 
-The header names your locales, and the rows are the three keys every host declares
-([the host contract](#the-host-contract)). The tab makes rows only for what it names — speakers,
-lines, replies, titles — so these three are yours to write once by hand. Godot imports the file as
-soon as the editor has focus again.
+The header names your source locale (the config's `source_locale`, `en` unless you change it) and
+the two `_` columns the tab writes to; the rows are the three keys every host declares
+([the host contract](#the-host-contract)), in English. A CSV already at that path is kept as it is;
+when one the tab opens lacks any of the three, the status line names them, and **Config ▾ > Add
+host keys** adds them as one block. It never does so by itself, because your game may declare those
+keys in a catalogue of its own. The tab shows no cell for these three rows: their other locales are
+written in the CSV.
 
-**The config.** Empty the setting (**Project Settings > General > Shanty > Config Path**), then
-press **Reload** in the tab. The status line says
-`No Shanty config: shanty/config_path is empty. Press Create config… to make one.`, and
-**Create config…** appears at the left of the toolbar — it is offered only while no config is open.
-Press it, open `res://story/`, keep the name `shanty_config.tres`, and save. The tab writes a config
-whose CSV is `dialogue_strings.csv` beside it and whose four folders are `res://story`, points the
-setting at it, and opens it: **Source** reads `en`, **Target** `pt_BR`, and the strip
-`en 3/3 · pt_BR 3/3`. The config is also open in the Inspector. Set two things there:
+The toolbar now reads **Source** `en`, **Target** empty, and the strip `en 3/3`. Set two things on
+the config in the Inspector:
 
 - **Highlight Colour** — the colour `[hl]` words draw in for the preview and Play. Pick an amber.
 - **Flags** — add one element, **New ShantyFlagRule**, and click it. Set **Flag** to `NEUTRAL` and
   give **Forbidden Words** one entry: key `en`, value the words `he`, `she`, `him`, `her`, `his`
   and `hers`. Step 7 uses it.
 
-Save the config with the Inspector's save button, and press **Reload** so the tab reads it as
-saved. [The config](#the-config) lists its other fields.
+Save the config with the Inspector's save button — the tab's **Save** writes your words and
+resources, never the config — and press **Reload** so the tab reads it as saved.
+[The config](#the-config) lists its other fields.
+
+**A second locale.** Type `pt_BR` into the *new locale* field and press **+ Locale**. The status
+line says `Added the pt_BR column. Save writes it.`, **Target** reads `pt_BR`, and the strip
+`en 3/3 · pt_BR 0/3`. The column goes in before the `_` columns: `keys,en,pt_BR,_flags,_notes`.
+(Had the CSV no locale column at all, the first one added would have been the **Source**, the field
+suggesting your `source_locale`.)
 
 ### 3. Two speakers
 
@@ -188,10 +206,12 @@ Give reply B one with `keeper_lit_lamp`. **+ Condition** on a line works the sam
 
 ### 6. The target locale and coverage
 
-The coverage strip now reads `en 10/10 · pt_BR 9/10`, the incomplete locale in the editor's warning
-colour; hover it for `Empty: DLG_LAMP_TALK_03`. **Save never refuses on coverage.** An empty cell
-is a report, not an error: whether a missing translation fails anything is your rule, in your own
-tests ([Localization](#localization)).
+The coverage strip now reads `en 10/10 · pt_BR 6/10`, the incomplete locale in the editor's warning
+colour; hover it for
+`Empty: SHANTY_HOLD_TO_SKIP, SHANTY_REPLY_PLACEHOLDER, SHANTY_READING_AGAIN, DLG_LAMP_TALK_03` —
+the three host rows, whose Portuguese is written in the CSV, and line 3. **Save never refuses on
+coverage.** An empty cell is a report, not an error: whether a missing translation fails anything
+is your rule, in your own tests ([Localization](#localization)).
 
 Add a language: type `fr` into the *new locale* field and press **+ Locale**. The status line says
 `Added the fr column. Save writes it.` and the strip gains `fr 0/10`. Pick `fr` in **Target**: the
@@ -217,7 +237,7 @@ and case-insensitively, in the locale whose list names it ([Lint rules](#lint-ru
 ### 8. The scene
 
 Press **Save** first: `Saved 4 files.` — the CSV and three resources (step 10 says what Save does).
-A scene names its conversation by its file, and now the file exists.
+A Say step picks its conversation from the files on disk, and now `lamp_talk.tres` is one.
 
 Type `lamp_scene` and press **+ Scene**. The centre shows:
 
@@ -231,25 +251,32 @@ Type `lamp_scene` and press **+ Scene**. The centre shows:
   scene once it has played.
 - *Steps, in order*, then **+ Step** — a menu of every step type your project declares. Pick, in
   turn:
-  1. **BackdropStep**. Its row reads `Backdrop: ground colour` and the step opens in the Inspector:
-     tick **Letterbox**, and the row reads `Backdrop: ground colour, letterbox`. With no texture the
-     backdrop is the plain ground colour.
+  1. **BackdropStep**. Its row reads `Backdrop: ground colour`, with the editor's own resource
+     picker for its still beside it — leave it empty, and the backdrop is the plain ground colour.
+     The step opens in the Inspector too: tick **Letterbox**, and the row reads
+     `Backdrop: ground colour, letterbox`.
   2. **FadeStep**: `Fade out 0.6 s`. Untick **To Black** in the Inspector: `Fade in 0.6 s`.
-  3. **SayStep**: `Say: (no conversation)`. Drag `res://story/lamp_talk.tres` from the FileSystem
-     dock onto **Conversation** in the Inspector: `Say: lamp_talk`, and the row gains
-     **Open conversation**, which jumps the centre to those lines.
+  3. **SayStep**: `Say: (no conversation)`, with a resource picker for its conversation. Drag
+     `res://story/lamp_talk.tres` from the FileSystem dock onto it (or pick **Load** in its menu):
+     `Say: lamp_talk`, and the row gains **Open conversation**, which jumps the centre to those
+     lines.
   4. **FadeStep** again, left as it is: `Fade out 0.6 s`.
 
-Every step row also has **Edit** (back to the Inspector), **Insert after**, **↑**, **↓** and
-**Remove**, none of which touches the other steps.
+A row's picker sets the one value a Backdrop or a Say is mostly about; every other value of a step
+is edited in the Inspector. Every step row also has **Edit** (back to the Inspector),
+**Insert after**, **↑**, **↓** and **Remove**, none of which touches the other steps.
 
 ### 9. The trigger
 
-A trigger names one moment your game recognises and lists the scenes that may play there. Type
-`lamp` and press **+ Trigger**. Your config lists no `trigger_ids`, so any lower-case id is allowed;
-when it lists them, **+ Trigger** offers the ones that have no trigger yet instead. Every new
-resource is saved as `<id>.tres` in its kind's folder, and your four folders are one, so give each
-new speaker, conversation, scene and trigger an id nothing else has.
+A trigger names one moment your game recognises and lists the scenes that may play there. Your
+config lists no `trigger_ids`, so any lower-case id is allowed; when it lists them, **+ Trigger**
+offers the ones that have no trigger yet instead.
+
+Every new resource is saved as `<id>.tres` in its kind's folder, and your four folders are one. Try
+`lamp_scene` first and press **+ Trigger**: the status line says
+`No trigger made: res://story/lamp_scene.tres is already the file of the new scene 'lamp_scene'.`
+A new file already on disk, or claimed by anything the tab holds — saved or not, of any kind — is
+refused, so one can never be saved over another. Type `lamp` and press **+ Trigger**.
 
 The centre shows **Moment** `lamp`, and under it what the lint finds about the trigger:
 `warning  empty_trigger  lamp: no candidate: this moment always plays nothing`. Press
@@ -275,8 +302,10 @@ column — a locale, or the first `_notes` or `_flags` — widens every row, onc
 **A stale file refuses the whole Save.** Try it: change a cell of `dialogue_strings.csv` in a text
 editor and save it there; change any cell in the tab and press **Save**. The status line says
 `Not saved: res://story/dialogue_strings.csv changed on disk since it was read. Reload to see the change.`
-and nothing is written. **Reload** reads every file again and drops your unsaved edits: the tab
-never overwrites rows it has not seen.
+and nothing is written; a **Reload** button sits beside the message, and does what the toolbar's
+does. It reads every file again — the status line says `Opened res://story/dialogue_strings.csv.`
+and the tab shows the change made in the text editor — and drops your unsaved edits: the tab never
+overwrites rows it has not seen.
 
 ### 11. The preview
 
@@ -298,15 +327,14 @@ speakers are Play's ([Hosting Play](#hosting-play)). Play shows everything else.
 
 ### 12. Play
 
-Play runs a game, and a game reads your translations as Godot imported them, so register them once:
-**Project > Project Settings > Localization > Translations**, press **Add…**, and pick
-`res://story/dialogue_strings.en.translation` and `res://story/dialogue_strings.pt_BR.translation`.
-
 Pick `lamp_scene` in the list — or the trigger `lamp`, to play the scene it chooses — and press
-**Play**. (With unsaved edits the status line says `Save first: Play plays the files on disk.`; and
-after a Save, wait for its reimport to finish.) A game window opens, as **Run Current Scene** would,
-and plays your scene through the real `CutscenePlayer` in the locale the preview shows — `en`, or
-`pt_BR` while its **Target** toggle is on:
+**Play**. The status line says
+`Playing res://story/lamp_scene.tres. Its effects and record print to the Output.` (With unsaved
+edits it says `Save first: Play plays the files on disk.` instead.) A game window opens, as **Run
+Current Scene** would, and plays your scene through the real `CutscenePlayer` in the locale the
+preview shows — `en`, or `pt_BR` while its **Target** toggle is on. Its words are your CSV's, read
+from the file as Play starts: nothing needs registering in Project Settings, and there is no
+reimport to wait for.
 
 1. The frame goes to the ground colour, the letterbox bars close in, the bar docks at the top, and
    the keeper's line types out, *lamp* in your highlight colour.
@@ -327,8 +355,9 @@ Shanty Play: record {"choices":{"lamp_talk/DLG_LAMP_TALK_03":0}, …, "scene_id"
 Shanty Play: Played lamp_scene. Press Escape or close.
 ```
 
-The record names the reply taken by conversation and line key, with its index, and keeps the title
-and synopsis keys and `remembered` as they were when it played. Each Play plays once: running
+Played from the trigger, the Output begins `Shanty Play: 'lamp' chose 'lamp_scene'.` The record
+names the reply taken by conversation and line key, with its index, and keeps the title and synopsis
+keys and `remembered` as they were when it played. Each Play plays once: running
 `res://addons/shanty/editor/preview/preview_host.tscn` again yourself says `Nothing to play`.
 
 ### 13. Where it all went
@@ -337,7 +366,7 @@ Everything you made is in `res://story/`:
 
 | File | What it holds |
 |---|---|
-| `dialogue_strings.csv` | Every word, one row per key, one column per locale, then `_flags` |
+| `dialogue_strings.csv` | Every word, one row per key, one column per locale, then `_flags` and `_notes` |
 | `dialogue_strings.*.translation` | Godot's import of it, one per locale — never edit these |
 | `shanty_config.tres` | The config the tab reads |
 | `story_flag_effect.gd` | Your effect class |
@@ -346,22 +375,23 @@ Everything you made is in `res://story/`:
 | `lamp_scene.tres` | The scene: its keys, flags and steps, naming `lamp_talk.tres` by path |
 | `lamp.tres` | The trigger: the moment `lamp` and its one candidate |
 
-The CSV, as Save wrote it:
+The CSV, as Save wrote it in step 10 — before your text editor's change — with the strip reading
+`en 12/12 · pt_BR 8/12 · fr 0/12`:
 
 ```csv
-keys,en,pt_BR,fr,_flags
-SHANTY_HOLD_TO_SKIP,Hold to skip,Segure para pular,,
-SHANTY_REPLY_PLACEHOLDER,…,…,,
-SHANTY_READING_AGAIN,Reading again,Lendo de novo,,
-SPEAKER_KEEPER,The Keeper,O Faroleiro,,
-SPEAKER_VISITOR,The Visitor,A Visita,,
-DLG_LAMP_TALK_01,You came back. The [hl]lamp[/hl] has been dark since you left.,Você voltou. A [hl]lanterna[/hl] está apagada desde que você partiu.,,
-DLG_LAMP_TALK_02,"I said I would, {name:keeper}.","Eu disse que voltaria, {name:keeper}.",,NEUTRAL
-DLG_LAMP_TALK_03,"Will you light it tonight, or shall I?",,,
-DLG_LAMP_TALK_03A,I will light it.,Eu acendo.,,
-DLG_LAMP_TALK_03B,You light it. I will watch.,Acenda você. Eu fico olhando.,,
-SCENE_TITLE_LAMP_SCENE,The Lamp,A Lanterna,,
-SCENE_SYNOPSIS_LAMP_SCENE,{name:visitor} came back to the lighthouse.,{name:visitor} voltou ao farol.,,
+keys,en,pt_BR,fr,_flags,_notes
+SHANTY_HOLD_TO_SKIP,Hold to skip,,,,Shown by Shanty's own controls: see ShantyHostContract
+SHANTY_REPLY_PLACEHOLDER,…,,,,Shown by Shanty's own controls: see ShantyHostContract
+SHANTY_READING_AGAIN,Reading again,,,,Shown by Shanty's own controls: see ShantyHostContract
+SPEAKER_KEEPER,The Keeper,O Faroleiro,,,
+SPEAKER_VISITOR,The Visitor,A Visita,,,
+DLG_LAMP_TALK_01,You came back. The [hl]lamp[/hl] has been dark since you left.,Você voltou. A [hl]lanterna[/hl] está apagada desde que você partiu.,,,
+DLG_LAMP_TALK_02,"I said I would, {name:keeper}.","Eu disse que voltaria, {name:keeper}.",,NEUTRAL,
+DLG_LAMP_TALK_03,"Will you light it tonight, or shall I?",,,,
+DLG_LAMP_TALK_03A,I will light it.,Eu acendo.,,,
+DLG_LAMP_TALK_03B,You light it. I will watch.,Acenda você. Eu fico olhando.,,,
+SCENE_TITLE_LAMP_SCENE,The Lamp,A Lanterna,,,
+SCENE_SYNOPSIS_LAMP_SCENE,{name:visitor} came back to the lighthouse.,{name:visitor} voltou ao farol.,,,
 ```
 
 No `.tres` holds a word of text: a translator works in the CSV alone, and a rename in the CSV
@@ -391,7 +421,9 @@ says so there and in the changelog.
   the highlight colour once with `ShantyText.set_highlight_colour()`.
 - **Three translation keys**, in every locale you offer: `SHANTY_HOLD_TO_SKIP` (the skip control's
   caption), `SHANTY_REPLY_PLACEHOLDER` (what stands in the line while replies wait) and
-  `SHANTY_READING_AGAIN` (the caption a replay wears in the frame's top-right corner).
+  `SHANTY_READING_AGAIN` (the caption a replay wears in the frame's top-right corner). Their
+  English starting text is `ShantyHostContract.DEFAULT_TEXT`, which the tab writes; at runtime a
+  missing key shows as the raw key.
 - **A theme, optionally** ([below](#the-theme-contract)).
 
 ### A host in one script
@@ -494,9 +526,12 @@ func _on_finished(
 	player.queue_free()
 ```
 
-Save the scene as `res://story/story_host.tscn` and press **F6**. The scene plays as it did from
-the tab, and the Output panel ends with `Played 'lamp_scene'.` and the flag your reply set. Because
-the candidate is `once`, a second `play_moment(trigger)` now plays nothing.
+Your game reads its words through Godot's imported translations — unlike the tab's Play, which
+reads the CSV — so register them once: **Project > Project Settings > Localization >
+Translations**, press **Add…**, and pick the `dialogue_strings.*.translation` files beside your
+CSV. Then save the scene as `res://story/story_host.tscn` and press **F6**. The scene plays as it
+did from the tab, and the Output panel ends with `Played 'lamp_scene'.` and the flag your reply
+set. Because the candidate is `once`, a second `play_moment(trigger)` now plays nothing.
 
 `example/example_host.gd` is the same host grown a little — its own strings loaded at runtime, a
 **Play the scene** button and a **Read it again** replay. Open `example/example_host.tscn` and press
@@ -530,18 +565,22 @@ caption, the recorded reply spoken rather than offered, and nothing is handed ba
 The tab's Play asks one object of yours for what a game would hand the player: a
 `ShantyPreviewHost`. With none named, Shanty's own plays your scenes with no code of yours at all —
 a context holding nothing (so every condition asking `has_key()` fails, and a gated line is
-skipped), your speakers folder named through your translations, the default reading settings, and
-nothing played before. When your conditions read real state, or your speakers are generated, extend
-it in a script of your own, override what your game provides, and name the script in your config's
-`preview_host_path`:
+skipped), your speakers folder named through your translations, the default reading settings,
+nothing played before, and your CSV's words. When your conditions read real state, or your
+speakers are generated, extend it in a script of your own, override what your game provides, and
+name the script in your config's `preview_host_path`:
 
 - `make_context() -> ShantyContext` — what your conditions ask.
 - `make_speaker_provider() -> ShantySpeakerProvider` — who the speakers are.
 - `make_settings() -> ShantyViewSettings` — text speed, names, reduced motion, buses.
 - `make_records() -> Array[PlayedSceneRecord]` — what has played, for a trigger's `once`
   candidates.
-- `make_translations() -> Array[Translation]` — catalogues to add while the preview plays, for
-  strings your project does not register (the example's are not).
+- `make_translations() -> Array[Translation]` — catalogues added while the preview plays and
+  removed when it closes. The default reads your config's CSV, one catalogue per locale column
+  (`ShantyPreviewHost.translations_from()`, escapes unescaped as Godot's importer does), rather than
+  the `.translation` files Godot imports from it, which a fresh clone lacks and which lag a Save
+  until its reimport finishes. Override it for strings that live elsewhere; the example's reads the
+  example's CSV.
 
 `config` holds your `ShantyProjectConfig` by the time any of them is called. The script needs no
 `@tool`: Play runs it in a game window, and the line preview, which asks it for
@@ -610,16 +649,23 @@ Shanty reads every word through Godot's `TranslationServer`, so localization is 
 translations, registered in **Project Settings > Localization > Translations** as any game's are.
 The CSV is a `keys` column, then one column per locale — as many as you like — then any `_` columns
 for the writers, which the importer skips. **The header is the only list of locales there is**:
-Shanty names none and treats none as special, the tab's **Source** and **Target** dropdowns list
-the header's columns, and **+ Locale** adds one. Coverage is a report, never a gate: the config's
+Shanty names none and treats none as special — beyond writing the host keys' starting text into
+an English column — the tab's **Source** and **Target** dropdowns list the header's columns
+(**Source** with your config's `source_locale` first), and **+ Locale** adds one: the Source while
+the CSV has no locale column yet, else the Target. Coverage is a report, never a gate: the config's
 `required_locales` is yours to read in your own tests, and Shanty never enforces it.
 
 ### The config
 
 The tab reads one `ShantyProjectConfig`, named by `shanty/config_path`. When the setting is empty,
-names no file, or names something that is not a config, the tab says which in its status line,
-shows an empty state, and offers **Create config…**. You can also make one with
-**Create New > Resource… > ShantyProjectConfig**. Its fields:
+names no file, or names something that is not a config, the tab says which in its status line and
+shows an empty state. The toolbar's **Config ▾** is there whatever is open: **Create config…**
+writes a new config, its CSV (`keys`, the `source_locale` column, `_flags`, `_notes` and the three
+host keys in English, unless a CSV is already at that path) and its folders, points the setting at
+it and opens it — refused while the tab holds unsaved edits, and opening rather than overwriting a
+config you pick that exists; **Open config in Inspector** shows the open one; and **Add host keys**
+gives your CSV a row for each host key it lacks. You can also make a config with **Create New >
+Resource… > ShantyProjectConfig**. Its fields:
 
 - `csv_path` — your translation CSV. One that does not exist yet is created by the first Save.
 - `speakers_folder`, `conversations_folder`, `scenes_folder`, `triggers_folder` — where those
@@ -733,7 +779,8 @@ trigger you changed, through `ResourceSaver`; a new resource that names another 
 scene saying a new conversation — names that file rather than holding a copy. Lint errors refuse
 it; warnings and coverage never do. **Stale files refuse it**: each file's content is fingerprinted
 when the tab reads it, and if any file Save would write has changed on disk since, Save writes
-nothing and says which; **Reload** reads the files again, dropping your unsaved edits.
+nothing and says which, with a **Reload** beside the message; Reload reads the files again,
+dropping your unsaved edits.
 
 **All or nothing.** Every file is first written beside its target (`<file>.shanty-tmp`, or
 `<name>.shanty-tmp.tres` for a resource) and read back; only when every one is ready are they moved
@@ -807,6 +854,9 @@ found in `she's` and `homme` in `l'homme` (a listed `she's` matches only itself,
 - A replay is read-only and ends on `replay_finished`, never `finished`; `stop_replay()` closes one
   early (a first playing has no such exit). A line the record holds no answer for ends the replay's
   dialogue there, with a warning, while the scene's other steps still play: no reply is invented.
+- A new speaker, conversation, scene or trigger is saved as `<folder>/<id>.tres`, and one whose
+  file is already on disk, or claimed by anything the tab holds — saved or new, of any kind — is
+  refused with the clash named: two resources never share a file.
 - The tab's Play plays the files on disk, and a request once: it is refused while the tab holds
   unsaved edits, and the game window takes the request as it reads it. It plays only a request
   naming a scene or trigger, a locale and a config, each a `res://` path inside your project to a
@@ -820,7 +870,7 @@ found in `she's` and `homme` in `l'homme` (a listed `she's` matches only itself,
 | `core/` | Pure code, the four host interfaces and the contract: `ShantyRunner`, `ShantySelector`, `ShantyText`, `ShantyViewSettings`, `ShantySpeaker`; `ShantyContext`, `ShantyCondition`, `ShantyEffect`, `ShantySpeakerProvider`; `ShantyHostContract` |
 | `ui/` | `CutscenePlayer` (layer, shield, backdrop, letterbox, fade, hold-to-skip, replay) and `DialogueView` (the top-docked bar), with the pieces they are built from: `ShantyBackdrop` (integer-scale still and pan), `ShantyPressInput` (tap versus hold, and the waits a tap may cut short), `ShantySay` (a scene's conversations), `ShantyMusic` (duck/swap and their undo), `ShantyTypewriter` (a line typing out), `ShantyReplyTurn` (the reply speaker's turn and its buttons), `ShantyLineAudio` (a line's voice and its blips), `ShantyChoiceButton`, `ShantyContinueMarker`, `SkipHold` |
 | `lint/` | Pure checks the tab and a host's tests share, with no editor and no file access: `ShantyCsvDocument` (with `ShantyCsvCodec` and `ShantyCsvRow`) reads and writes the translation CSV, `ShantyLocaleCoverage` reports one locale, `ShantyKeyScheme` names keys, `ShantyLint` (with `ShantyLintText` and `ShantyLintStory`) returns `ShantyLintIssue`s, and `ShantyProjectConfig` with its `ShantyFlagRule`s is a host's configuration |
-| `editor/` | The Shanty tab. `model/` holds everything it knows and does, testable without the editor: `ShantyEditorModel`, `ShantySpeakerEdits`, `ShantyConversationEdits`, `ShantySceneEdits`, `ShantyTriggerEdits`, `ShantyPreviewModel` (what the line preview draws), `ShantyPlay` (what Play asks for), `ShantyClassCatalog` (the pickers' classes), `ShantySaveResult`, `ShantySaveTransaction`, and `ShantyFiles`, the one script that opens a file your config names. `preview/` is Play's game-window side: `preview_host.tscn`, `ShantyPreviewHost` and `ShantyPreviewSpeakers`. The scenes and scripts beside them are thin panes over that model |
+| `editor/` | The Shanty tab. `model/` holds everything it knows and does, testable without the editor: `ShantyEditorModel`, `ShantySpeakerEdits`, `ShantyConversationEdits`, `ShantySceneEdits`, `ShantyTriggerEdits`, `ShantyPreviewModel` (what the line preview draws), `ShantyPlay` (what Play asks for), `ShantyClassCatalog` (the pickers' classes), `ShantyHostKeys` (the host keys in your CSV), `ShantySaveResult`, `ShantySaveTransaction`, and `ShantyFiles`, the one script that opens a file your config names. `preview/` is Play's game-window side: `preview_host.tscn`, `ShantyPreviewHost` and `ShantyPreviewSpeakers`. The scenes and scripts beside them are thin panes over that model |
 | `example/` | A whole host with no other code: context, condition, effect, speaker provider, host scene, a three-line conversation with one choice, its scene and trigger, two speakers, its own strings, `shanty_config.tres`, its configuration for the tab, and `example_preview_host.gd`, what Play plays it with. Its scripts declare no `class_name`, so installing Shanty spends no global names on it. It reads `example_strings.csv` at runtime, which an export does not include, so it runs from the editor; a real host registers its catalogue in Project Settings and needs no loader |
 | `plugin.cfg`, `plugin.gd` | The editor plugin: the Shanty tab and the `shanty/config_path` setting |
 | `CHANGELOG.md`, `LICENSE`, `MANIFEST.sha256` | What each version changed; MIT; the release's file hashes |

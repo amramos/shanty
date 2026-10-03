@@ -6,7 +6,8 @@ extends GutTest
 ## `Shanty`/`Cutscene`/`Dialogue` name anywhere in it is a class, a file or a
 ## theme type; every `example/` twin and `res://addons/shanty/` path it points
 ## at exists; every key the tutorial says the tab will make is the one the
-## default key scheme makes; and its version is `plugin.cfg`'s. The changelog's
+## default key scheme makes; the CSV it says Create config writes is the one
+## `ShantyFiles.create_config()` writes; and its version is `plugin.cfg`'s. The changelog's
 ## headings are each a version a release tag can carry. A rename that forgets
 ## the README fails here rather than in a reader's first half hour.
 
@@ -39,6 +40,8 @@ const TUTORIAL_LINES: int = 3
 const TUTORIAL_ASKING_LINE: int = 3
 const TUTORIAL_REPLIES: int = 2
 const TUTORIAL_SCENE: String = "lamp_scene"
+## Where the test lets `ShantyFiles.create_config()` write, and removes again.
+const SCRATCH: String = "user://readme_tutorial_test"
 
 
 func _readme() -> String:
@@ -189,6 +192,25 @@ func test_the_tutorial_key_reader() -> void:
 			]
 		)
 	)
+
+
+func test_the_csv_the_tutorial_says_create_config_writes_is_the_one_it_writes() -> void:
+	var blocks: Array[String] = []
+	var fence := RegEx.create_from_string("(?s)```csv\\n(.*?)```")
+	for found: RegExMatch in fence.search_all(_readme()):
+		blocks.append(found.get_string(1))
+	DirAccess.make_dir_recursive_absolute(SCRATCH)
+	var config_path: String = SCRATCH.path_join("shanty_config.tres")
+	var csv_path: String = SCRATCH.path_join(ShantyProjectConfig.NEW_CSV_NAME)
+
+	assert_eq(ShantyFiles.create_config(config_path), OK, "a config is created")
+	var written: String = FileAccess.get_file_as_string(csv_path)
+	for file: String in DirAccess.get_files_at(SCRATCH):
+		DirAccess.remove_absolute(SCRATCH.path_join(file))
+	DirAccess.remove_absolute(SCRATCH)
+
+	assert_gt(blocks.size(), 1, "the tutorial shows the new CSV and the finished one")
+	assert_eq(blocks[0], written, "the first CSV block is what Create config writes")
 
 
 func test_the_readme_version_is_the_plugin_version() -> void:
