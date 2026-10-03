@@ -52,7 +52,10 @@ the config gains one optional field.
 - **`ShantyPreviewHost`**, the base a host extends for Play — `make_context()`,
   `make_speaker_provider()`, `make_settings()`, `make_records()`, `make_translations()` — named by
   the config's `preview_host_path`. With none named, Play uses the base: an empty context, the
-  config's speakers folder (`ShantyPreviewSpeakers`), default settings.
+  config's speakers folder (`ShantyPreviewSpeakers`), default settings, and the config's CSV as
+  its translations — read from the file (`translations_from()`, one catalogue per locale column,
+  escapes unescaped as the importer does), not from the imported `.translation` files, which a
+  fresh clone lacks — so Play shows the writer's words with nothing registered.
 - **Scene and trigger lint** (`ShantyLintStory`): errors `unplayable_scene` (a step this version does
   not build, or a Say step whose conversation can loop), `unknown_trigger` (no id, or one outside a
   closed `trigger_ids`), `duplicate_trigger` (counted apart from `unknown_trigger`, so an unknown id

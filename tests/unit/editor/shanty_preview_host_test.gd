@@ -185,3 +185,39 @@ func test_a_request_outside_the_project_or_of_the_wrong_kind_is_refused() -> voi
 
 		assert_null(_player(host), reason)
 		assert_string_contains(_caption(host), reason)
+
+
+func test_the_default_host_shows_the_csvs_words_with_nothing_registered() -> void:
+	var host: Control = _host(SCENE, BARE_CONFIG, "pt_BR")
+	var first_line: Callable = func() -> bool:
+		return _player(host) != null and _player(host).dialogue_view().current_line() != null
+	assert_true(await _tap_until(host, first_line), "a line is shown")
+	if not first_line.call():
+		return
+	var view: DialogueView = _player(host).dialogue_view()
+
+	assert_eq((host.get(&"host") as ShantyPreviewHost).get_script(), ShantyPreviewHost)
+	assert_false(view.line_text().is_empty())
+	assert_false(view.line_text().contains("SHANTY_EXAMPLE"), "the CSV's own words")
+	remove_child(host)
+	assert_eq(
+		TranslationServer.translate("SHANTY_EXAMPLE_LINE_1"),
+		"SHANTY_EXAMPLE_LINE_1",
+		"the catalogues it added are gone again"
+	)
+
+
+func test_the_csv_becomes_one_catalogue_per_locale_as_the_importer_reads_it() -> void:
+	var csv: ShantyCsvDocument = ShantyCsvDocument.parse(
+		'keys,en,pt_BR,_notes\nA,"One\\nTwo",Um,a note\nB,Only English,,\nC,Short\n'
+	)
+	var made: Array[Translation] = ShantyPreviewHost.translations_from(csv)
+
+	assert_eq(made.size(), 2, "a `_` column is the writers', not a locale")
+	assert_eq(made[0].locale, "en")
+	assert_eq(String(made[0].get_message("A")), "One\nTwo", "an escape is unescaped")
+	assert_eq(String(made[0].get_message("C")), "Short")
+	assert_eq(made[1].locale, "pt_BR")
+	assert_eq(String(made[1].get_message("A")), "Um")
+	assert_eq(String(made[1].get_message("B")), "", "an empty cell adds no message")
+	assert_eq(String(made[1].get_message("C")), "", "nor does a short row's missing cell")

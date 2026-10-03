@@ -428,8 +428,10 @@ your scene, in the locale the preview shows, through the real `CutscenePlayer`, 
 speakers and reading settings from your [preview host](#hosting-play). Every effect the scene
 returns and the record it leaves print to the editor's **Output**; nothing is applied and nothing is
 saved. Then the window says `Played <id>. Press Escape or close.` Play plays the files on disk, so
-it is refused while the tab holds unsaved edits; and because the game reads your imported
-translations, play once a Save's reimport has finished. The window takes the request as it reads
+it is refused while the tab holds unsaved edits. Its words are your CSV's, read from the file as
+Play starts, so they show whether or not your project registers its translations; only a
+[preview host](#hosting-play) of yours that replaces `make_translations()` and relies on Godot's
+imported `.translation` files needs a Save's reimport to finish first. The window takes the request as it reads
 it, so each Play plays once: running `preview_host.tscn` again yourself says `Nothing to play`. It
 plays only a request naming a scene or trigger, a locale and a config, each path a `res://` path
 inside your project to a file of that kind, and says which part it refused otherwise.
@@ -502,7 +504,7 @@ the reimport.
 Play asks one object of yours for what a game would hand the player: a `ShantyPreviewHost`. With
 none named, Shanty's own plays your scenes with no code of yours at all — a context holding nothing
 (so every condition asking `has_key()` fails), your speakers folder named through your
-translations, the default reading settings, and nothing played before. When your conditions read
+translations, the default reading settings, nothing played before, and your CSV's words. When your conditions read
 real state, or your speakers are generated, extend it in a script of your own, override what your
 game provides, and name the script in your config's `preview_host_path`:
 
@@ -511,8 +513,12 @@ game provides, and name the script in your config's `preview_host_path`:
 - `make_settings() -> ShantyViewSettings` — text speed, names, reduced motion, buses.
 - `make_records() -> Array[PlayedSceneRecord]` — what has played, for a trigger's `once`
   candidates.
-- `make_translations() -> Array[Translation]` — catalogues to add while the preview plays, for
-  strings your project does not register (the example's are not).
+- `make_translations() -> Array[Translation]` — catalogues to add while the preview plays, removed
+  when it closes. The default reads your config's CSV — one catalogue per locale column, through
+  `ShantyPreviewHost.translations_from()`, escapes unescaped as Godot's importer does — rather than
+  the `.translation` files Godot imports from it, which a fresh clone lacks and which lag a Save
+  until the reimport finishes. Override it for strings that live elsewhere; the example's own
+  reads the example's CSV.
 
 `config` holds your `ShantyProjectConfig` by the time any of them is called. The script needs no
 `@tool`: Play runs it in a game window, and the line preview, which asks it for

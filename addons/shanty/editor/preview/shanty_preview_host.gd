@@ -9,8 +9,10 @@ extends RefCounted
 ##
 ## **The base needs no code of yours.** Its context holds nothing (every
 ## condition asking `has_key()` fails), its speakers are your speakers folder
-## named through the TranslationServer, its settings are the defaults, and it
-## has played nothing. A host whose conditions read real state, or whose
+## named through the TranslationServer, its settings are the defaults, it has
+## played nothing, and its translations are the config's CSV, read as Play
+## starts -- so Play shows your words whether or not the project registers
+## them. A host whose conditions read real state, or whose
 ## speakers are generated, overrides the matching method.
 ##
 ## Play runs in a game window, never in the editor, so a subclass needs no
@@ -61,6 +63,31 @@ func make_records() -> Array[PlayedSceneRecord]:
 
 
 ## Catalogues to add while the preview plays, for strings the project does
-## not register itself. The base adds none: the project's own play.
+## not register itself. The base reads the config's CSV, one catalogue per
+## locale column (`translations_from()`).
+##
+## **The CSV, not the `.translation` files Godot imports from it**: those are
+## import products -- absent from a fresh clone, and a step behind the file
+## until a Save's reimport finishes -- while the CSV is always there and is
+## exactly what the tab saved.
 func make_translations() -> Array[Translation]:
-	return []
+	if config == null or config.csv_path.is_empty() or not ShantyFiles.exists(config.csv_path):
+		return []
+	return translations_from(ShantyCsvDocument.parse(ShantyFiles.read_text(config.csv_path)))
+
+
+## One `Translation` per locale column of `csv`, holding every non-empty cell
+## as Godot's CSV importer reads it: an escape such as a backslash-n in a cell
+## unescaped, and keys taken as written. A key on two rows, which the lint
+## refuses, is read from its first.
+static func translations_from(csv: ShantyCsvDocument) -> Array[Translation]:
+	var made: Array[Translation] = []
+	for locale: String in csv.locales():
+		var translation := Translation.new()
+		translation.locale = locale
+		for key: String in csv.keys():
+			var cell: String = csv.text(key, locale)
+			if not cell.is_empty():
+				translation.add_message(key, cell.c_unescape())
+		made.append(translation)
+	return made
