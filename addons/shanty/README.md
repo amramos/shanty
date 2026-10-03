@@ -358,8 +358,9 @@ lighthouse conversation in the tab.
 
 **The panes.** The left pane lists your speakers, conversations, scenes and triggers; type an id
 and press **+ Speaker**, **+ Conversation**, **+ Scene** or **+ Trigger** to make one. When your
-config lists `trigger_ids`, **+ Trigger** instead offers the ids that have no trigger yet. The
-centre edits what you picked:
+config lists `trigger_ids`, **+ Trigger** instead offers the ids that have no trigger yet. The list
+follows your edits: an id changed in a form shows in its row, and in those free ids, straight away.
+The centre edits what you picked:
 
 - **A speaker**: its id, its name key (named for you, editable), the name in the source and target
   locales, notes, and its faces — an emotion tag each, with a texture chosen through the editor's

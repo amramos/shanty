@@ -36,6 +36,8 @@ var _lint_timer: Timer = Timer.new()
 var _config_dialog: EditorFileDialog = null
 var _refresh: FilesystemRefresh = null
 var _started: bool = false
+## True while a refill of the list waits for the end of the frame.
+var _list_refresh_queued: bool = false
 
 @onready var _toolbar: Toolbar = %Toolbar
 @onready var _list: ListPane = %List
@@ -222,8 +224,25 @@ func _on_property_edited(_property: String) -> void:
 func _on_model_changed() -> void:
 	_toolbar.show_coverage(_model.coverage())
 	_preview.show_line(_model, _previewed)
+	_queue_list_refresh()
 	if is_inside_tree():
 		_lint_timer.start()
+
+
+## Refills the list once the edit that changed the model has returned -- an id
+## changed in a form shows in its row, and in + Trigger's free ids -- keeping
+## the pick. Deferred, so it never runs inside the Tree's own selection signal,
+## and coalesced: every edit in a frame shares one refill.
+func _queue_list_refresh() -> void:
+	if _list_refresh_queued:
+		return
+	_list_refresh_queued = true
+	_refresh_list.call_deferred()
+
+
+func _refresh_list() -> void:
+	_list_refresh_queued = false
+	_list.show_model(_model, _selected)
 
 
 func _run_lint() -> void:

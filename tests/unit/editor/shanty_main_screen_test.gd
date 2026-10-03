@@ -86,6 +86,64 @@ func test_each_kind_picked_shows_its_own_form_and_the_preview_follows() -> void:
 	assert_eq(line.text, "Words typed a moment ago.", "the preview follows the typing")
 
 
+func _tree(screen: Control) -> Tree:
+	return screen.get_node(^"%List").get(&"_tree")
+
+
+func _row_texts(screen: Control) -> PackedStringArray:
+	var texts: PackedStringArray = []
+	for section: TreeItem in _tree(screen).get_root().get_children():
+		for item: TreeItem in section.get_children():
+			texts.append(item.get_text(0))
+	return texts
+
+
+func _item_of(screen: Control, resource: Resource) -> TreeItem:
+	for section: TreeItem in _tree(screen).get_root().get_children():
+		for item: TreeItem in section.get_children():
+			if item.get_metadata(0) == resource:
+				return item
+	return null
+
+
+func test_an_id_changed_in_a_form_updates_its_row_and_the_free_ids_once() -> void:
+	var screen: Control = _started_screen()
+	var model: ShantyEditorModel = screen.call(&"model")
+	var trigger: StoryTriggerDefinition = model.triggers[0]
+	screen.call(&"_pick", trigger)
+	var list: Node = screen.get_node(^"%List")
+	assert_eq(list.get(&"_free_trigger_ids"), PackedStringArray(["chapter_start"]))
+	var root: TreeItem = _tree(screen).get_root()
+
+	assert_true(ShantyTriggerEdits.set_id(model, trigger, "chapter_start"))
+	model.touch(trigger)
+	assert_same(_tree(screen).get_root(), root, "not refilled inside the edit")
+	await wait_process_frames(1)
+
+	assert_true(_row_texts(screen).has("chapter_start"), str(_row_texts(screen)))
+	assert_false(_row_texts(screen).has("lamp"))
+	assert_eq(list.get(&"_free_trigger_ids"), PackedStringArray(["lamp"]))
+	assert_same(_tree(screen).get_selected().get_metadata(0), trigger, "the pick is kept")
+	assert_false(screen.get(&"_list_refresh_queued"), "two edits, one refill, done")
+	# The example's trigger is the cached resource other tests load: put it back.
+	ShantyTriggerEdits.set_id(model, trigger, "lamp")
+
+
+func test_a_pick_in_the_list_never_refills_it_synchronously() -> void:
+	var screen: Control = _started_screen()
+	var model: ShantyEditorModel = screen.call(&"model")
+	var root: TreeItem = _tree(screen).get_root()
+	var item: TreeItem = _item_of(screen, model.scenes[0])
+
+	item.select(0)
+
+	assert_same(screen.get(&"_selected"), model.scenes[0], "the pick reached the tab")
+	assert_same(_tree(screen).get_root(), root, "the tree was not cleared under its own signal")
+	assert_true(is_instance_valid(item) and item.is_selected(0))
+	await wait_process_frames(1)
+	assert_same(_tree(screen).get_selected().get_metadata(0), model.scenes[0])
+
+
 func test_play_is_refused_with_its_reason_while_edits_are_unsaved() -> void:
 	var screen: Control = _started_screen()
 	var model: ShantyEditorModel = screen.call(&"model")

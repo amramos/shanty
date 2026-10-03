@@ -27,7 +27,8 @@ the config gains one optional field.
   typed when it does not; candidates with a scene picked from the scenes folder, a priority (any
   whole number a 64-bit int holds, typed, as `StoryCandidate.priority` allows: the tab sets no range
   of its own), `once` and conditions, added, moved and removed. The left pane makes scenes and
-  triggers too, and offers a closed set's free ids for + Trigger.
+  triggers too, and offers a closed set's free ids for + Trigger; it follows every edit, so an id
+  changed in a form shows in its row and in those free ids at once, the pick kept.
 - **The line preview.** The picked line in the real `DialogueView` scene, instanced under a plain
   `Control` carrying the project theme with the config's `theme_path` merged over it: the speaker's
   name and face, `{name:}` tokens and `[hl]` words resolved from the tab's CSV as it is typed, in the
