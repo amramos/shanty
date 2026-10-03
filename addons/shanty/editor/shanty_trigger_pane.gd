@@ -14,7 +14,7 @@ const PickerMenu := preload("res://addons/shanty/editor/shanty_picker_menu.gd")
 const EntryChips := preload("res://addons/shanty/editor/shanty_entry_chips.gd")
 const NO_SCENE: String = "(no scene)"
 const SCENE_WIDTH: float = 200.0
-const PRIORITY_RANGE: int = 1000
+const PRIORITY_WIDTH: float = 90.0
 
 var _model: ShantyEditorModel = null
 var _trigger: StoryTriggerDefinition = null
@@ -127,16 +127,7 @@ func _candidate_rows(index: int) -> VBoxContainer:
 	number.custom_minimum_size.x = 28
 	row.add_child(number)
 	row.add_child(_scene_picker(candidate))
-	var priority := SpinBox.new()
-	priority.min_value = -PRIORITY_RANGE
-	priority.max_value = PRIORITY_RANGE
-	priority.value = candidate.priority
-	priority.prefix = "priority"
-	priority.value_changed.connect(
-		func(value: float) -> void:
-			ShantyTriggerEdits.edit(_model, _trigger, candidate, &"priority", int(value))
-	)
-	row.add_child(priority)
+	row.add_child(_priority_field(candidate))
 	var once := CheckBox.new()
 	once.text = "Once"
 	once.tooltip_text = "Passed over once the host's records hold its scene"
@@ -170,6 +161,23 @@ func _candidate_rows(index: int) -> VBoxContainer:
 	)
 	box.add_child(chips)
 	return box
+
+
+## The candidate's priority as typed: any whole number, as the data allows. A
+## field rather than a SpinBox, whose float would round a large one. Anything
+## else is put back to the value it holds.
+func _priority_field(candidate: StoryCandidate) -> LineEdit:
+	var field := LineEdit.new()
+	field.text = str(candidate.priority)
+	field.custom_minimum_size.x = PRIORITY_WIDTH
+	field.placeholder_text = "priority"
+	field.tooltip_text = "Priority: any whole number; the highest whose conditions hold plays"
+	var commit: Callable = func(value: String) -> void:
+		ShantyTriggerEdits.set_priority(_model, _trigger, candidate, value)
+		field.text = str(candidate.priority)
+	field.text_submitted.connect(commit)
+	field.focus_exited.connect(func() -> void: commit.call(field.text))
+	return field
 
 
 ## The scenes the scenes folder holds; a scene from anywhere else stays named,

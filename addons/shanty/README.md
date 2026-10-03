@@ -384,9 +384,10 @@ centre edits what you picked:
   remove steps without touching the others. A scene without a synopsis offers **+ Synopsis**.
 - **A trigger**: the moment it answers — chosen from your config's `trigger_ids` when it lists
   them, typed when it does not — and its candidates: each a scene picked from your scenes folder, a
-  priority, **Once**, and conditions added as on a line and edited in the Inspector, with **↑**,
-  **↓** and **Remove**; **+ Candidate** adds one. A trigger's file is named for the id it was made
-  with; changing the id later leaves the file where it is.
+  priority (typed: any whole number, as the data allows; anything else is put back), **Once**, and
+  conditions added as on a line and edited in the Inspector, with **↑**, **↓** and **Remove**;
+  **+ Candidate** adds one. A trigger's file is named for the id it was made with; changing the id
+  later leaves the file where it is.
 
 **The preview.** The right pane draws the line you are working on — the first line of a picked
 conversation or scene, then whichever line's cell you click into — in your real dialogue bar:

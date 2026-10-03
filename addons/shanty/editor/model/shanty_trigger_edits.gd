@@ -140,6 +140,33 @@ static func edit(
 	model.touch(trigger)
 
 
+## Sets a candidate's priority from what the writer typed: any whole number a
+## 64-bit int holds, as `StoryCandidate.priority` does -- the tab sets no range
+## of its own. False, changing nothing, for anything else.
+static func set_priority(
+	model: ShantyEditorModel,
+	trigger: StoryTriggerDefinition,
+	candidate: StoryCandidate,
+	text: String
+) -> bool:
+	var written: String = text.strip_edges()
+	if not written.is_valid_int() or not _fits_int64(written):
+		return false
+	edit(model, trigger, candidate, &"priority", written.to_int())
+	return true
+
+
+## True when the whole number `written` is within a 64-bit int; `to_int()`
+## would clamp one beyond it without a word to the writer.
+static func _fits_int64(written: String) -> bool:
+	var negative: bool = written.begins_with("-")
+	var digits: String = written.trim_prefix("-").trim_prefix("+").lstrip("0")
+	var limit: String = "9223372036854775808" if negative else "9223372036854775807"
+	if digits.length() != limit.length():
+		return digits.length() < limit.length()
+	return digits <= limit
+
+
 ## A new condition of the script at `script_path` on `candidate`; null when the
 ## script does not extend ShantyCondition.
 static func add_condition(

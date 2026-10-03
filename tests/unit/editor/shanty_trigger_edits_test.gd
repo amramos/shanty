@@ -49,6 +49,28 @@ func test_a_closed_set_is_the_only_source_of_ids() -> void:
 	assert_eq(ShantyTriggerEdits.free_ids(_model), PackedStringArray(["door_opened"]))
 
 
+func test_a_priority_is_any_whole_number_and_round_trips_through_save() -> void:
+	var trigger: StoryTriggerDefinition = ShantyTriggerEdits.add_trigger(_model, "start")
+	var candidate: StoryCandidate = ShantyTriggerEdits.add_candidate(_model, trigger, _scene)
+	var large: int = 9_000_000_000_000_000_007
+
+	for text: String in [" 2500 ", "-1001", "+7", str(large)]:
+		assert_true(ShantyTriggerEdits.set_priority(_model, trigger, candidate, text), text)
+		assert_eq(candidate.priority, text.strip_edges().to_int(), "no clamp: " + text)
+	assert_true(ShantyTriggerEdits.set_priority(_model, trigger, candidate, "-9223372036854775808"))
+	assert_eq(candidate.priority, -9223372036854775807 - 1)
+	ShantyTriggerEdits.set_priority(_model, trigger, candidate, str(large))
+	for text: String in ["", "1.5", "ten", "9223372036854775808", "-9223372036854775809"]:
+		assert_false(ShantyTriggerEdits.set_priority(_model, trigger, candidate, text), text)
+		assert_eq(candidate.priority, large, "refused, it changes nothing: " + text)
+
+	assert_true(_model.save().saved)
+	var reopened := ShantyEditorModel.new()
+	reopened.open(Fixture.config(), true)
+	var saved: StoryTriggerDefinition = ShantyTriggerEdits.find(reopened, &"start")
+	assert_eq(saved.candidates[0].priority, large, "the file holds it whole")
+
+
 func test_a_closed_set_id_that_cannot_name_a_file_is_refused() -> void:
 	_model.config.trigger_ids = ["../outside", "a/b", "..", "Door-1"]
 

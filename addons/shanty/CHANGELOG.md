@@ -24,9 +24,10 @@ the config gains one optional field.
   its values (`Say: lamp_talk`, `Fade in 0.5 s`). A Say row opens its conversation. Step types come
   from `ShantyClassCatalog`, `AnimateStep` and `VideoStep` hidden while unbuilt.
 - **A trigger pane.** The moment, chosen from the config's `trigger_ids` when it lists them and
-  typed when it does not; candidates with a scene picked from the scenes folder, a priority, `once`
-  and conditions, added, moved and removed. The left pane makes scenes and triggers too, and offers
-  a closed set's free ids for + Trigger.
+  typed when it does not; candidates with a scene picked from the scenes folder, a priority (any
+  whole number a 64-bit int holds, typed, as `StoryCandidate.priority` allows: the tab sets no range
+  of its own), `once` and conditions, added, moved and removed. The left pane makes scenes and
+  triggers too, and offers a closed set's free ids for + Trigger.
 - **The line preview.** The picked line in the real `DialogueView` scene, instanced under a plain
   `Control` carrying the project theme with the config's `theme_path` merged over it: the speaker's
   name and face, `{name:}` tokens and `[hl]` words resolved from the tab's CSV as it is typed, in the
