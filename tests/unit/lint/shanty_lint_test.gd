@@ -111,10 +111,49 @@ func test_an_empty_key_is_an_error() -> void:
 	assert_eq(_rules(_check(CSV, conversation)), PackedStringArray(["error:empty_key"]))
 
 
-func test_a_doubled_key_and_a_short_row_are_errors() -> void:
+func test_a_doubled_key_is_an_error_and_a_short_row_only_a_warning() -> void:
 	var csv: String = CSV + "TALK_01,Again,,,,\nSHORT,x\n"
+	var issues: Array[ShantyLintIssue] = _check(csv)
 
-	assert_eq(_rules(_check(csv)), PackedStringArray(["error:duplicate_key", "error:row_width"]))
+	assert_eq(_rules(issues), PackedStringArray(["error:duplicate_key", "warning:row_width"]))
+	assert_eq(issues[1].key, "SHORT")
+	assert_eq(issues[1].message, "2 cells, header has 6; missing cells read as empty")
+
+
+func test_a_row_wider_than_the_header_is_an_error() -> void:
+	var issues: Array[ShantyLintIssue] = _check(CSV + "WIDE,Hi, there.,Oi.,,,\n")
+
+	assert_eq(_rules(issues), PackedStringArray(["error:row_width"]))
+	assert_eq(issues[0].key, "WIDE")
+	assert_string_contains(issues[0].message, "7 cells, header has 6")
+
+
+## Godot's CSV translation importer (verified by a host on 4.7.1; GUT cannot
+## run the importer) takes a four-column header with rows of two, three and five
+## cells without an error: a short row's missing cells import as empty, and a
+## five-cell row's locale cells translate normally while its fifth cell is
+## dropped without a word. So a short row is a warning that never blocks Save,
+## and only a row wider than the header -- whose extra cells vanish, usually
+## after an unescaped comma -- is an error.
+func test_row_width_severities_follow_what_the_importer_does() -> void:
+	var document: ShantyCsvDocument = ShantyCsvDocument.parse(
+		"keys,en,pt_BR,fr\nTWO,a\nTHREE,a,b\nFIVE,a,b,c,extra\n"
+	)
+	var no_speakers: Array[SpeakerDefinition] = []
+	var no_conversations: Array[ConversationDefinition] = []
+	var issues: Array[ShantyLintIssue] = ShantyLint.check(
+		document, null, no_speakers, no_conversations
+	)
+
+	assert_eq(
+		_rules(issues),
+		PackedStringArray(["warning:row_width", "warning:row_width", "error:row_width"])
+	)
+	assert_eq(issues[0].key, "TWO")
+	assert_eq(issues[1].key, "THREE")
+	assert_eq(ShantyLint.errors_in(issues)[0].key, "FIVE")
+	assert_eq(document.text("FIVE", "fr"), "c", "a long row's locale cells still read")
+	assert_eq(document.text("TWO", "fr"), "", "a short row's missing cells read as empty")
 
 
 func test_a_flagged_row_may_not_hold_a_forbidden_whole_word() -> void:

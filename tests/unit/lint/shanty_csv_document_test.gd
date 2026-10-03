@@ -12,6 +12,11 @@ const SOURCE: String = (
 	+ 'MULTI,"two\nlines",duas linhas,,\n'
 	+ "SPACED,  padded  ,x,,\n"
 )
+## Rows of two and three cells under a four-cell header, which Godot's importer
+## takes, reading the missing cells as empty.
+const SHORT_ROWS: String = (
+	"keys,en,pt_BR,fr\n" + "TWO,a\n" + "THREE,a,b\n" + "FULL,a,b,c\n" + 'QUOTED,"x, y"\n'
+)
 
 
 func _document() -> ShantyCsvDocument:
@@ -112,7 +117,7 @@ func test_a_locale_column_goes_after_the_last_locale_and_widens_every_row() -> v
 	)
 	assert_eq(document.text("GREETING", "_owner"), "ana", "the `_` columns kept their cells")
 	assert_true(document.to_text().contains("FAREWELL,Bye,,,,\n"))
-	assert_eq(document.width_mismatches(), PackedStringArray())
+	assert_true(document.width_mismatches().is_empty())
 
 
 func test_a_bad_or_existing_locale_is_refused() -> void:
@@ -167,8 +172,55 @@ func test_shape_problems_are_reported() -> void:
 	var document: ShantyCsvDocument = ShantyCsvDocument.parse("keys,en\nA,x\nB\nA,y\n")
 
 	assert_eq(document.duplicate_keys(), PackedStringArray(["A"]))
-	assert_eq(document.width_mismatches(), PackedStringArray(["B"]))
+	assert_eq(document.width_mismatches(), {"B": 1})
 	assert_eq(document.text("A", "en"), "x", "the first row answers")
+
+
+func test_a_doubled_key_is_measured_by_the_row_the_importer_keeps() -> void:
+	var document: ShantyCsvDocument = ShantyCsvDocument.parse("keys,en,fr\nA,x\nA,y,z\nB,1,2,3\n")
+
+	assert_eq(document.width_mismatches(), {"B": 4}, "A's last row is full width")
+
+
+func test_a_short_rows_missing_cells_read_as_empty() -> void:
+	var document: ShantyCsvDocument = ShantyCsvDocument.parse(SHORT_ROWS)
+
+	assert_eq(document.text("TWO", "pt_BR"), "")
+	assert_eq(document.text("THREE", "pt_BR"), "b")
+	assert_eq(document.text("THREE", "fr"), "")
+	assert_eq(document.width_mismatches(), {"TWO": 2, "THREE": 3, "QUOTED": 2})
+
+
+func test_coverage_counts_a_short_rows_missing_cells_as_empty() -> void:
+	var reports: Array[ShantyLocaleCoverage] = ShantyCsvDocument.parse(SHORT_ROWS).coverage()
+
+	assert_eq(reports[0].summary(), "en 4/4")
+	assert_eq(reports[1].summary(), "pt_BR 2/4")
+	assert_eq(reports[1].empty_keys, PackedStringArray(["TWO", "QUOTED"]))
+	assert_eq(reports[2].summary(), "fr 1/4")
+	assert_eq(reports[2].empty_keys, PackedStringArray(["TWO", "THREE", "QUOTED"]))
+
+
+func test_a_short_row_nobody_edits_is_never_padded() -> void:
+	var document: ShantyCsvDocument = ShantyCsvDocument.parse(SHORT_ROWS)
+
+	assert_eq(document.to_text(), SHORT_ROWS, "read and written back as found")
+	assert_true(document.set_text("FULL", "fr", "C"))
+	assert_true(document.set_text("TWO", "en", "a"), "an unchanged value is no edit")
+	assert_eq(document.to_text(), SHORT_ROWS.replace("FULL,a,b,c\n", "FULL,a,b,C\n"))
+
+
+func test_an_edited_short_row_is_written_at_full_width() -> void:
+	var document: ShantyCsvDocument = ShantyCsvDocument.parse(SHORT_ROWS)
+
+	assert_true(document.set_text("TWO", "en", "A"))
+	assert_true(document.set_text("QUOTED", "pt_BR", "z"))
+	assert_eq(
+		document.to_text(),
+		SHORT_ROWS.replace("TWO,a\n", "TWO,A,,\n").replace('"x, y"\n', '"x, y",z,\n')
+	)
+	assert_false(document.width_mismatches().has("TWO"))
+	assert_true(document.width_mismatches().has("THREE"), "the row nobody edited stays short")
 
 
 func test_an_empty_text_is_a_document_with_a_keys_header() -> void:

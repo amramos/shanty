@@ -87,6 +87,20 @@ func test_warnings_and_an_empty_locale_never_refuse() -> void:
 	assert_eq(_model.coverage()[2].summary(), "fr 0/5")
 
 
+func test_a_short_row_never_refuses_and_keeps_its_bytes() -> void:
+	var source: String = Fixture.CSV + "SHORT,only English\n"
+	ShantyFiles.write_text(Fixture.CSV_PATH, source)
+	_model.reload()
+	assert_true(_model.set_text("DLG_TALK_02", "pt_BR", "Tchau."))
+	var result: ShantySaveResult = _model.save()
+
+	assert_true(result.saved, result.message)
+	assert_eq(_model.coverage()[1].summary(), "pt_BR 5/6", "the short row's pt_BR is empty")
+	assert_eq(
+		Fixture.csv_on_disk(), source.replace("DLG_TALK_02,Bye.,,\n", "DLG_TALK_02,Bye.,Tchau.,\n")
+	)
+
+
 func test_a_csv_changed_on_disk_refuses_the_save() -> void:
 	_model.set_text("DLG_TALK_02", "pt_BR", "Tchau.")
 	var theirs: String = Fixture.CSV + "THEIRS,Added elsewhere,,\n"

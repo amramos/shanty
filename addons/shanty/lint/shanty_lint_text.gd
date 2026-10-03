@@ -24,7 +24,10 @@ const APOSTROPHE: String = "'"
 const TYPOGRAPHIC_APOSTROPHE: String = "\u2019"
 
 
-## Duplicate keys and rows the importer would drop for their width.
+## Duplicate keys, and rows not as wide as the header. Godot's importer reads
+## a short row's missing cells as empty, so it imports and is only a warning; it
+## ignores a long row's extra cells without a word, and those almost always mean
+## an unescaped comma that shifted the text, so a long row is an error.
 static func check_shape(document: ShantyCsvDocument, issues: Array[ShantyLintIssue]) -> void:
 	for key: String in document.duplicate_keys():
 		issues.append(
@@ -34,17 +37,29 @@ static func check_shape(document: ShantyCsvDocument, issues: Array[ShantyLintIss
 				key
 			)
 		)
-	for key: String in document.width_mismatches():
-		issues.append(
-			ShantyLintIssue.error(
-				ShantyLint.RULE_ROW_WIDTH,
-				(
-					"the row does not have exactly %d cells, so the importer drops it"
-					% document.header().size()
-				),
-				key
+	var width: int = document.header().size()
+	var mismatches: Dictionary[String, int] = document.width_mismatches()
+	for key: String in mismatches:
+		var cells: int = mismatches[key]
+		if cells < width:
+			issues.append(
+				ShantyLintIssue.warning(
+					ShantyLint.RULE_ROW_WIDTH,
+					"%d cells, header has %d; missing cells read as empty" % [cells, width],
+					key
+				)
 			)
-		)
+		else:
+			issues.append(
+				ShantyLintIssue.error(
+					ShantyLint.RULE_ROW_WIDTH,
+					(
+						"%d cells, header has %d; the extra cells are ignored (an unescaped comma?)"
+						% [cells, width]
+					),
+					key
+				)
+			)
 
 
 ## Every flagged row against the config's word lists: a forbidden whole word in

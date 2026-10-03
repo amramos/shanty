@@ -8,12 +8,13 @@ extends RefCounted
 ## tests can run the same checks over its data.
 ##
 ## Errors are what would break or mislead at runtime: a key missing or doubled,
-## a row the importer drops, a flagged word, a loop, a jump to nowhere, an
-## unknown speaker or face, a reply that cannot be told apart in a played
-## record, `{name:}` tokens that differ between locales. Warnings are what reads
-## worse but works. **Coverage is neither** -- an empty cell is a report
-## (`ShantyCsvDocument.coverage()`), and whether a gap fails anything is the
-## host's rule.
+## a row wider than the header (the importer ignores the extra cells), a
+## flagged word, a loop, a jump to nowhere, an unknown speaker or face, a reply
+## that cannot be told apart in a played record, `{name:}` tokens that differ
+## between locales. Warnings are what reads worse but works -- a short row
+## among them, whose missing cells the importer reads as empty. **Coverage is
+## neither** -- an empty cell is a report (`ShantyCsvDocument.coverage()`), and
+## whether a gap fails anything is the host's rule.
 
 const RULE_MISSING_KEY: StringName = &"missing_key"
 const RULE_EMPTY_KEY: StringName = &"empty_key"

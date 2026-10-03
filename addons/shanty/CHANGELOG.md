@@ -51,8 +51,10 @@ pure checks it shares with a host's own tests. Scenes, triggers, the line previe
 - **`lint/`, pure and headless:** `ShantyCsvDocument` (with `ShantyCsvCodec` and `ShantyCsvRow`)
   reads and writes the translation CSV exactly as Godot's importer reads it; `ShantyLocaleCoverage`;
   `ShantyKeyScheme`, which names new keys from configurable patterns and never renumbers one;
-  `ShantyLint` (with `ShantyLintText`), whose `ShantyLintIssue`s cover missing and doubled keys, rows
-  the importer would drop, flagged words, `{name:}` tokens that differ between locales, loops, jumps
+  `ShantyLint` (with `ShantyLintText`), whose `ShantyLintIssue`s cover missing and doubled keys, row
+  width (`row_width`: a row wider than the header is an error, since the importer ignores its extra
+  cells; a shorter one only a warning, since the importer — verified on Godot 4.7.1 — reads its
+  missing cells as empty, as coverage does, and Save never pads it unless it was edited), flagged words, `{name:}` tokens that differ between locales, loops, jumps
   to missing labels, unknown speakers and faces, a reply key used twice anywhere in the
   conversations it is handed (a played record could not tell them apart), and over-length lines;
   and `ShantyProjectConfig` with `ShantyFlagRule`. A forbidden word is matched whole and

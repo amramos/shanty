@@ -388,15 +388,16 @@ takes the ending most of the file uses. A byte-order mark, and whether the file 
 break, are kept as found.
 
 **Lint.** Lint runs as you type, on demand, and before every Save. Errors refuse Save: a key missing
-from the CSV or on two rows, a row of the wrong width (Godot's importer drops it), a flagged line
-containing one of its flag's forbidden words, `{name:<id>}` tokens that differ between locales, a
+from the CSV or on two rows, a row wider than the header (Godot's importer ignores the extra cells
+without a word, and they usually mean an unescaped comma), a flagged line containing one of its flag's forbidden words, `{name:<id>}` tokens that differ between locales, a
 reply jumping to a label no line carries, a conversation that can loop, an unknown speaker or face,
 a reply key used twice — under one line, on two lines, or in two conversations, since a played
 record names a reply by its key alone. A forbidden word is matched whole and case-insensitively;
 an accent or other combining mark belongs to its word, and an apostrophe is an edge, so `she` is
 found in `she's` and `homme` in `l'homme` (a listed `she's` matches only itself, and `’` reads as
-`'`). Warnings never do: an over-length line,
-a flag your config does not name, a token naming a speaker the speakers folder lacks. A host's own
+`'`). Warnings never do: a row shorter than the header (the importer reads its missing cells as
+empty, and coverage counts them so; Save writes it back as found unless you edit it, and an edited
+row at full width), an over-length line, a flag your config does not name, a token naming a speaker the speakers folder lacks. A host's own
 tests can run the same checks: `ShantyLint.check()` takes the CSV and the resources and touches
 neither the editor nor the disk.
 

@@ -161,12 +161,19 @@ func duplicate_keys() -> PackedStringArray:
 	return repeated
 
 
-## Keys whose row is not exactly as wide as the header: the importer drops them.
-func width_mismatches() -> PackedStringArray:
-	var found: PackedStringArray = []
+## Key -> cell count, for every key whose row is not exactly as wide as the
+## header, in file order. A doubled key is judged by its last row, the one the
+## importer keeps. Godot's importer reads a short row's missing cells as empty
+## and ignores a long row's extra cells, so neither is dropped.
+func width_mismatches() -> Dictionary[String, int]:
+	var last: Dictionary[String, int] = {}
 	for row: ShantyCsvRow in _rows:
-		if not row.key().is_empty() and row.cells.size() != _header.cells.size():
-			found.append(row.key())
+		if not row.key().is_empty():
+			last[row.key()] = row.cells.size()
+	var found: Dictionary[String, int] = {}
+	for key: String in last:
+		if last[key] != _header.cells.size():
+			found[key] = last[key]
 	return found
 
 
@@ -271,7 +278,8 @@ func coverage() -> Array[ShantyLocaleCoverage]:
 	return reports
 
 
-## How many keyed rows have a non-empty cell in `locale`.
+## How many keyed rows have a non-empty cell in `locale`. A row too short to
+## reach the column counts as empty there, as the importer reads it.
 func coverage_of(locale: String) -> ShantyLocaleCoverage:
 	var report := ShantyLocaleCoverage.new()
 	report.locale = locale
