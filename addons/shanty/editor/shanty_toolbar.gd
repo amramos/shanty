@@ -1,9 +1,10 @@
 @tool
 extends HBoxContainer
 
-## The tab's toolbar: the working (source) locale and the target locale, both
-## filled from the CSV header and nothing else; + Locale; the coverage strip;
-## Reload, Lint, Save and Play. It only reports what the writer pressed.
+## The tab's toolbar: the Config menu, reachable whatever is open; the working
+## (source) locale and the target locale, both filled from the CSV header and
+## nothing else; + Locale; the coverage strip; Reload, Lint, Save and Play. It
+## only reports what the writer pressed.
 
 signal locales_chosen(source: String, target: String)
 signal locale_requested(locale: String)
@@ -11,11 +12,15 @@ signal reload_pressed
 signal lint_pressed
 signal save_pressed
 signal create_config_pressed
+signal inspect_config_pressed
 signal play_pressed
+
+## The Config menu's items, by id.
+enum ConfigItem { CREATE, INSPECT }
 
 const Palette := preload("res://addons/shanty/editor/shanty_editor_palette.gd")
 
-var _create_config: Button = Button.new()
+var _config_menu: MenuButton = MenuButton.new()
 var _source: OptionButton = OptionButton.new()
 var _target: OptionButton = OptionButton.new()
 var _new_locale: LineEdit = LineEdit.new()
@@ -27,11 +32,18 @@ func build() -> void:
 	if _built:
 		return
 	_built = true
-	_create_config.text = "Create config…"
-	_create_config.tooltip_text = "Save a new ShantyProjectConfig and point the project at it"
-	_create_config.visible = false
-	_create_config.pressed.connect(create_config_pressed.emit)
-	add_child(_create_config)
+	_config_menu.text = "Config ▾"
+	_config_menu.flat = false
+	_config_menu.tooltip_text = "The ShantyProjectConfig the tab reads"
+	var items: PopupMenu = _config_menu.get_popup()
+	items.add_item("Create config…", ConfigItem.CREATE)
+	items.set_item_tooltip(
+		items.get_item_index(ConfigItem.CREATE),
+		"Save a new ShantyProjectConfig, point the project at it and open it"
+	)
+	items.add_item("Open config in Inspector", ConfigItem.INSPECT)
+	items.id_pressed.connect(_on_config_item)
+	add_child(_config_menu)
 	_add_caption("Source")
 	add_child(_source)
 	_add_caption("Target")
@@ -55,9 +67,16 @@ func build() -> void:
 	_target.item_selected.connect(_on_locale_selected.unbind(1))
 
 
-## Offers Create config… only while no config is open.
+## With no config open there is none to inspect; Create config… is always
+## offered.
 func show_config_missing(missing: bool) -> void:
-	_create_config.visible = missing
+	var items: PopupMenu = _config_menu.get_popup()
+	items.set_item_disabled(items.get_item_index(ConfigItem.INSPECT), missing)
+
+
+## The Config menu, for the tests.
+func config_menu() -> PopupMenu:
+	return _config_menu.get_popup()
 
 
 ## Fills both dropdowns with the CSV's locales.
@@ -89,6 +108,14 @@ func _fill(button: OptionButton, locales: PackedStringArray, chosen: String) -> 
 		button.add_item(locale)
 	var at: int = locales.find(chosen)
 	button.select(at)
+
+
+func _on_config_item(id: int) -> void:
+	match id:
+		ConfigItem.CREATE:
+			create_config_pressed.emit()
+		ConfigItem.INSPECT:
+			inspect_config_pressed.emit()
 
 
 func _on_locale_selected() -> void:

@@ -45,6 +45,24 @@ func test_an_empty_setting_shows_the_empty_state_and_says_why() -> void:
 	var hint: Label = screen.get_node(^"%Hint")
 	assert_true(hint.visible)
 	assert_string_contains(hint.text, "No Shanty config is open")
+	var menu: PopupMenu = _config_menu(screen)
+	assert_false(menu.is_item_disabled(0), "Create config… is offered")
+	assert_true(menu.is_item_disabled(1), "there is no config to inspect")
+
+
+func test_the_config_menu_offers_create_config_while_a_config_is_open() -> void:
+	var screen: Control = _started_screen()
+	var menu: PopupMenu = _config_menu(screen)
+
+	assert_not_null((screen.call(&"model") as ShantyEditorModel).config)
+	assert_eq(menu.get_item_text(0), "Create config…")
+	assert_false(menu.is_item_disabled(0))
+	assert_eq(menu.get_item_text(1), "Open config in Inspector")
+	assert_false(menu.is_item_disabled(1))
+
+
+func _config_menu(screen: Control) -> PopupMenu:
+	return (screen.get_node(^"%Toolbar") as Node).call(&"config_menu")
 
 
 func test_requests_without_a_config_are_answered_not_crashed_on() -> void:

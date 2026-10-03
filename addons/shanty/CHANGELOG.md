@@ -69,6 +69,14 @@ the config gains one optional field.
   strings), `example/example_trigger.tres` (the moment `lamp`), and a config naming both, with a
   closed set of trigger ids and its highlight colour.
 
+### Changed
+
+- **Create config… is reachable at any time**, from the toolbar's new **Config ▾** menu beside
+  **Open config in Inspector**, rather than only while no config is open. Switching goes through
+  `ShantyEditorModel.switch_config()`, which points `shanty/config_path` at the new config and opens
+  it, and is refused while edits are unsaved. `ShantyFiles.create_config()` never overwrites a file:
+  it returns `ERR_ALREADY_EXISTS`, and the tab opens an existing config picked in its dialog instead.
+
 ### Fixed
 
 - A new resource saved alongside another new one that names it — a new scene saying a new

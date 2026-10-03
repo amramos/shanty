@@ -21,7 +21,7 @@ const FilesystemRefresh := preload("res://addons/shanty/editor/shanty_filesystem
 const LINT_DELAY: float = 0.4
 const PICK_HINT: String = "Pick a speaker, conversation, scene or trigger on the left, or make one."
 const NO_CONFIG_HINT: String = (
-	"No Shanty config is open. Press Create config… to make one, or point the project"
+	"No Shanty config is open. Config ▾ > Create config… makes one, or point the project"
 	+ " setting %s at yours." % ShantyProjectConfig.SETTING
 )
 
@@ -68,6 +68,7 @@ func start() -> void:
 	_toolbar.save_pressed.connect(_save)
 	_toolbar.play_pressed.connect(_play)
 	_toolbar.create_config_pressed.connect(_on_create_config_pressed)
+	_toolbar.inspect_config_pressed.connect(_inspect_config)
 	_list.resource_selected.connect(_select)
 	_list.create_requested.connect(_on_create_requested)
 	_centre.inspect_requested.connect(_inspect)
@@ -87,14 +88,19 @@ func model() -> ShantyEditorModel:
 ## Reads the configured project again, dropping unsaved edits. With no usable
 ## config the tab shows an empty state and says why.
 func _open(fresh: bool) -> void:
-	var problem: ShantyEditorModel.Problem = _model.open_path(ShantyFiles.config_path(), fresh)
-	var missing: bool = problem != ShantyEditorModel.Problem.NONE
+	_model.open_path(ShantyFiles.config_path(), fresh)
+	_show_opened()
+
+
+## Redraws everything from what the model opened, or its empty state.
+func _show_opened() -> void:
+	var missing: bool = _model.problem != ShantyEditorModel.Problem.NONE
 	_preview.show_config(_model.config)
 	_pick(null)
 	_toolbar.show_locales(_model.locales(), _model.source_locale, _model.target_locale)
 	_toolbar.show_config_missing(missing)
 	if missing:
-		_say(_model.status + " Press Create config… to make one.")
+		_say(_model.status + " Config ▾ > Create config… makes one.")
 	elif _model.status.is_empty():
 		_say("Opened %s." % _model.config.csv_path)
 	else:
@@ -163,6 +169,9 @@ func _on_create_requested(kind: StringName, id: String) -> void:
 
 
 func _on_create_config_pressed() -> void:
+	if _model.is_dirty():
+		_say("Save or Reload first: opening another config drops the unsaved edits.")
+		return
 	if not _in_editor():
 		return
 	if _config_dialog == null:
@@ -177,25 +186,36 @@ func _on_create_config_pressed() -> void:
 	_config_dialog.popup_file_dialog()
 
 
-## Saves a fresh config at `path`, points the project setting at it, opens it,
+## Saves a fresh config at `path` -- or, when a file is already there, opens
+## it rather than overwriting it -- points the project setting at it, opens it,
 ## and hands it to the Inspector so its CSV and folders can be set.
 func _create_config(path: String) -> void:
 	var error: Error = ShantyFiles.create_config(path)
-	if error != OK:
+	if error != OK and error != ERR_ALREADY_EXISTS:
 		_say("Could not create %s (%s)." % [path, error_string(error)])
 		return
-	ProjectSettings.set_setting(ShantyProjectConfig.SETTING, path)
+	var refusal: String = _model.switch_config(path)
+	if not refusal.is_empty():
+		_say(refusal)
+		return
 	ProjectSettings.save()
-	_filesystem().request(PackedStringArray([path]))
-	_open(true)
-	if _model.config != null:
-		EditorInterface.edit_resource(_model.config)
+	_filesystem().request(PackedStringArray([path, _model.config.csv_path]))
+	_show_opened()
+	EditorInterface.edit_resource(_model.config)
+	var done: String = "Created" if error == OK else "Opened the existing"
 	_say(
 		(
-			"Created %s and pointed %s at it. Its CSV and folders are in the Inspector."
-			% [path, ShantyProjectConfig.SETTING]
+			"%s %s and pointed %s at it. Its CSV and folders are in the Inspector."
+			% [done, path, ShantyProjectConfig.SETTING]
 		)
 	)
+
+
+func _inspect_config() -> void:
+	if _model.config == null:
+		_say(NO_CONFIG_HINT)
+	elif _in_editor():
+		EditorInterface.edit_resource(_model.config)
 
 
 func _inspect(resource: Resource, owner: Resource) -> void:

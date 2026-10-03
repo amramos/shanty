@@ -327,10 +327,13 @@ anyone editing those files as text can work on one project.
 setting `shanty/config_path` (**Project Settings > General > Shanty**, shown once the plugin is
 enabled). The setting defaults to the example's config inside the addon, so a project that has just
 installed Shanty opens the tab on the demo. When the setting is empty, names no file, or names
-something that is not a config, the tab says which in its status line, shows an empty state, and
-offers **Create config…**: pick where to save it, and the tab writes a new config whose CSV
-(`dialogue_strings.csv`) and folders sit beside it, points the setting at it, opens it, and hands it
-to the Inspector. You can also make one with **Create New > Resource… > ShantyProjectConfig**. Set:
+something that is not a config, the tab says which in its status line and shows an empty state.
+The toolbar's **Config ▾** menu is there whatever is open: **Create config…** asks where to save
+one, and the tab writes a new config whose CSV (`dialogue_strings.csv`) and folders sit beside it,
+points the setting at it, opens it, and hands it to the Inspector — or, when you pick a config that
+already exists, opens that one instead of overwriting it. It is refused while the tab holds unsaved
+edits, which opening another config would drop. **Open config in Inspector** shows the open one.
+You can also make one with **Create New > Resource… > ShantyProjectConfig**. Set:
 
 - `csv_path` — your translation CSV.
 - `speakers_folder`, `conversations_folder`, `scenes_folder`, `triggers_folder` — where those

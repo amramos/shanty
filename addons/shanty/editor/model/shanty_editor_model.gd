@@ -96,6 +96,24 @@ func reload() -> String:
 	return open(config, true)
 
 
+## Points the project setting at the config at `path` and opens it: what the
+## tab does once Create config… has written one, from any state. "" when it
+## did; otherwise why not, changing nothing -- `path` is not a config, or edits
+## are unsaved, which opening another config would drop. Only sets the
+## setting: the editor writes it to `project.godot`.
+func switch_config(path: String) -> String:
+	if is_dirty():
+		return "Not switched to %s: Save or Reload first; the unsaved edits would be lost." % path
+	var loaded: ShantyProjectConfig = null
+	if ShantyFiles.exists(path):
+		loaded = ShantyFiles.load_resource(path, true) as ShantyProjectConfig
+	if loaded == null:
+		return "Not switched: %s is not a ShantyProjectConfig." % path
+	ShantyFiles.set_config_path(path)
+	open(loaded, true)
+	return ""
+
+
 func locales() -> PackedStringArray:
 	return document.locales()
 

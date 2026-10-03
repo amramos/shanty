@@ -147,6 +147,12 @@ static func config_path() -> String:
 	)
 
 
+## Points the project setting at the config at `path`, in memory: the editor
+## saves `project.godot`.
+static func set_config_path(path: String) -> void:
+	ProjectSettings.set_setting(ShantyProjectConfig.SETTING, path)
+
+
 ## The config the project setting names, or null with no setting or no file.
 static func configured() -> ShantyProjectConfig:
 	var path: String = config_path()
@@ -157,7 +163,11 @@ static func configured() -> ShantyProjectConfig:
 
 ## Saves a new config at `path`, its CSV and every folder beside it, so the
 ## tab opens on it at once; the writer edits it in the Inspector from there.
+## `ERR_ALREADY_EXISTS`, writing nothing, when a file is at `path`: an
+## existing config is opened, never overwritten with a blank one.
 static func create_config(path: String) -> Error:
+	if exists(path):
+		return ERR_ALREADY_EXISTS
 	var made := ShantyProjectConfig.new()
 	var folder: String = path.get_base_dir()
 	made.csv_path = folder.path_join(ShantyProjectConfig.NEW_CSV_NAME)
