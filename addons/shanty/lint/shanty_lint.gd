@@ -40,6 +40,7 @@ const RULE_DUPLICATE_TRIGGER: StringName = &"duplicate_trigger"
 const RULE_EMPTY_TRIGGER: StringName = &"empty_trigger"
 const RULE_UNKNOWN_SCENE: StringName = &"unknown_scene"
 const RULE_DUPLICATE_CANDIDATE: StringName = &"duplicate_candidate"
+const RULE_UNSAFE_TRIGGER_ID: StringName = &"unsafe_trigger_id"
 ## The runtime shows at most this many replies under a line.
 const MAX_REPLIES: int = 3
 

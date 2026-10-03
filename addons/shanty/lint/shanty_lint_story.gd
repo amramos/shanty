@@ -11,6 +11,12 @@ extends RefCounted
 ## so each step is copied into a fresh instance of its own script -- which does
 ## run there -- and that copy is asked `is_built()` and `is_well_formed()`, the
 ## same questions `CutsceneDefinition.is_playable()` asks before a scene plays.
+## Outside the editor the authored step runs and is asked directly.
+
+## A trigger id must also be a file name: the tab saves a new trigger as
+## `<id>.tres` in the triggers folder, so an id is letters, digits, `_` and `-`
+## -- never a separator, a dot or `..`.
+const SAFE_STEM_PATTERN: String = "^[A-Za-z0-9_-]+$"
 
 
 ## A scene the player would refuse before it starts: a step this version does
@@ -59,6 +65,7 @@ static func check_triggers(
 	issues: Array[ShantyLintIssue]
 ) -> void:
 	var allowed: PackedStringArray = config.trigger_ids if config != null else PackedStringArray()
+	_check_config_ids(config, allowed, issues)
 	var seen: Dictionary[StringName, bool] = {}
 	for trigger: StoryTriggerDefinition in triggers:
 		if trigger == null:
@@ -77,6 +84,37 @@ static func check_triggers(
 		_check_candidates(trigger, scenes, where, issues)
 
 
+## True when `id` can name a file in a folder and nothing outside it.
+static func is_safe_stem(id: String) -> bool:
+	return RegEx.create_from_string(SAFE_STEM_PATTERN).search(id) != null
+
+
+## A closed set's id that could not be a trigger's file name: the tab never
+## offers it, so no trigger can be made for that moment.
+static func _check_config_ids(
+	config: ShantyProjectConfig, allowed: PackedStringArray, issues: Array[ShantyLintIssue]
+) -> void:
+	for id: String in allowed:
+		if not is_safe_stem(id):
+			(
+				issues
+				. append(
+					(
+						ShantyLintIssue
+						. warning(
+							ShantyLint.RULE_UNSAFE_TRIGGER_ID,
+							(
+								"the config's trigger id '%s' cannot name a file: use letters, digits, _ and -"
+								% id
+							),
+							"",
+							ShantyLint.location_of(config, &"config")
+						)
+					)
+				)
+			)
+
+
 static func _check_id(
 	trigger: StoryTriggerDefinition,
 	allowed: PackedStringArray,
@@ -85,14 +123,23 @@ static func _check_id(
 	issues: Array[ShantyLintIssue]
 ) -> void:
 	var id: StringName = trigger.trigger_id
-	var problem: String = ""
 	if id.is_empty():
-		problem = "the trigger has no id"
-	elif not allowed.is_empty() and not allowed.has(String(id)):
-		problem = "'%s' is not one of the config's trigger ids" % id
-	if not problem.is_empty():
-		issues.append(ShantyLintIssue.error(ShantyLint.RULE_UNKNOWN_TRIGGER, problem, "", where))
+		issues.append(
+			ShantyLintIssue.error(
+				ShantyLint.RULE_UNKNOWN_TRIGGER, "the trigger has no id", "", where
+			)
+		)
 		return
+	if not allowed.is_empty() and not allowed.has(String(id)):
+		issues.append(
+			ShantyLintIssue.error(
+				ShantyLint.RULE_UNKNOWN_TRIGGER,
+				"'%s' is not one of the config's trigger ids" % id,
+				"",
+				where
+			)
+		)
+	# Counted apart from the check above: an unknown id on two triggers is both.
 	if seen.has(id):
 		issues.append(
 			ShantyLintIssue.error(
@@ -152,12 +199,16 @@ static func is_listed(scene: CutsceneDefinition, scenes: Array[CutsceneDefinitio
 	return false
 
 
-## A fresh instance of `step`'s script holding a copy of its stored values: a
-## real instance even in the editor, where the authored one may be a
-## placeholder. `step` itself when its script cannot be instanced.
-static func working_copy(step: CutsceneStep) -> CutsceneStep:
+## Inside the editor, a fresh instance of `step`'s script holding a copy of its
+## stored values: a real instance, where the authored one may be a placeholder.
+## Outside it -- a game, a headless test -- `step` itself, whose script runs, so
+## nothing is copied. `step` itself too when its script cannot be instanced.
+## `in_editor` is for the tests, which run outside the editor.
+static func working_copy(
+	step: CutsceneStep, in_editor: bool = Engine.is_editor_hint()
+) -> CutsceneStep:
 	var script: GDScript = step.get_script() as GDScript
-	if script == null:
+	if not in_editor or script == null:
 		return step
 	var copy: CutsceneStep = script.new() as CutsceneStep
 	if copy == null:

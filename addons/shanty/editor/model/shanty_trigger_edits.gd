@@ -8,6 +8,10 @@ extends RefCounted
 ## Each candidate is a scene from the scenes folder, a priority, `once`, and
 ## conditions edited in the Inspector. A trigger's file is named for the id it
 ## was made with; changing the id later leaves the file where it is.
+##
+## **Every id is a safe file name**, closed set or open: an id from the config
+## that is not (`ShantyLintStory.is_safe_stem()`) is refused, so no id can put
+## a trigger's file outside the triggers folder.
 
 const ID_PATTERN: String = "^[a-z0-9_]+$"
 
@@ -31,17 +35,27 @@ static func free_ids(model: ShantyEditorModel) -> PackedStringArray:
 	if not is_closed(model):
 		return free
 	for id: String in model.config.trigger_ids:
-		if find(model, StringName(id)) == null and not free.has(id):
+		if allows(model, id) and find(model, StringName(id)) == null and not free.has(id):
 			free.append(id)
 	return free
 
 
 ## True when `id` may name a trigger: one of the closed set, or any lower-case
-## id when the set is open.
+## id when the set is open -- and, either way, a safe file name.
 static func allows(model: ShantyEditorModel, id: String) -> bool:
-	if is_closed(model):
-		return model.config.trigger_ids.has(id)
-	return RegEx.create_from_string(ID_PATTERN).search(id) != null
+	return id_refusal(model, id).is_empty()
+
+
+## Why `id` may not name a trigger, or "" when it may. Whether another trigger
+## already has it is not asked here.
+static func id_refusal(model: ShantyEditorModel, id: String) -> String:
+	if not ShantyLintStory.is_safe_stem(id):
+		return "'%s' cannot name a file: use letters, digits, _ and -" % id
+	if is_closed(model) and not model.config.trigger_ids.has(id):
+		return "'%s' is not one of the config's trigger ids" % id
+	if not is_closed(model) and RegEx.create_from_string(ID_PATTERN).search(id) == null:
+		return "'%s' is not a lower-case id" % id
+	return ""
 
 
 ## A new trigger saved as `<triggers folder>/<id>.tres`. Null, changing

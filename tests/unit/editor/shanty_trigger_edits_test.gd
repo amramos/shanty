@@ -49,6 +49,23 @@ func test_a_closed_set_is_the_only_source_of_ids() -> void:
 	assert_eq(ShantyTriggerEdits.free_ids(_model), PackedStringArray(["door_opened"]))
 
 
+func test_a_closed_set_id_that_cannot_name_a_file_is_refused() -> void:
+	_model.config.trigger_ids = ["../outside", "a/b", "..", "Door-1"]
+
+	for id: String in ["../outside", "a/b", ".."]:
+		assert_null(ShantyTriggerEdits.add_trigger(_model, id), id)
+		assert_string_contains(ShantyTriggerEdits.id_refusal(_model, id), "cannot name a file")
+	assert_eq(
+		ShantyTriggerEdits.free_ids(_model),
+		PackedStringArray(["Door-1"]),
+		"only a safe id is offered"
+	)
+	var trigger: StoryTriggerDefinition = ShantyTriggerEdits.add_trigger(_model, "Door-1")
+	assert_eq(_model.path_of(trigger), Fixture.TRIGGERS + "/Door-1.tres")
+	assert_false(ShantyTriggerEdits.set_id(_model, trigger, "../outside"))
+	assert_eq(trigger.trigger_id, &"Door-1")
+
+
 func test_candidates_are_added_moved_and_removed_without_touching_the_others() -> void:
 	var trigger: StoryTriggerDefinition = ShantyTriggerEdits.add_trigger(_model, "start")
 	var first: StoryCandidate = ShantyTriggerEdits.add_candidate(_model, trigger, _scene)

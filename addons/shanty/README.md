@@ -342,7 +342,9 @@ to the Inspector. You can also make one with **Create New > Resource… > Shanty
 - `length_cap` — characters a line may run to before the lint warns; 0 is no cap.
 - `trigger_ids` — the moments your game recognises. When the list is not empty it is the whole set
   a trigger may name: the tab offers only these, and the lint marks any other. Empty allows any
-  lower-case id.
+  lower-case id. Either way an id is also the new trigger's file name, so it may hold only letters,
+  digits, `_` and `-`: the tab refuses any other, and the lint warns of one in this list
+  (`unsafe_trigger_id`).
 - `theme_path` — the theme the line preview and Play draw with, over your project theme; empty
   uses the project theme alone.
 - `highlight_colour` — the colour `[hl]` words draw in for the preview and Play: whatever your game
@@ -440,14 +442,16 @@ found in `she's` and `homme` in `l'homme` (a listed `she's` matches only itself,
 `'`). Scenes and triggers are linted too. Errors: a scene holding a step this version does not build
 or a Say step whose conversation can loop (`unplayable_scene` — the player would refuse the whole
 scene), a trigger with no id or one outside your closed `trigger_ids` (`unknown_trigger`), two
-triggers with one id (`duplicate_trigger`), a candidate with no scene or one your scenes folder does
-not hold (`unknown_scene`). Warnings never block Save: a row shorter than the header (the importer
-reads its missing cells as empty, and coverage counts them so; Save writes it back as found unless you
-edit it, and an edited row at full width), an over-length line, a flag your config does not name, a
-token naming a speaker the speakers folder lacks, a trigger with no candidate (`empty_trigger`), and
-one scene on two candidates of a trigger (`duplicate_candidate` — sometimes meant, as one scene behind
-two different gates). A host's own tests can run the same checks: `ShantyLint.check()` takes the CSV
-and the resources and touches neither the editor nor the disk.
+triggers with one id (`duplicate_trigger`, counted apart, so an unknown id on two triggers is both),
+a candidate with no scene or one your scenes folder does not hold (`unknown_scene`). Warnings never
+block Save: a `trigger_ids` entry that cannot be a file name (`unsafe_trigger_id`), a row shorter
+than the header (the importer reads its missing cells as empty, and coverage counts them so; Save
+writes it back as found unless you edit it, and an edited row at full width), an over-length line, a
+flag your config does not name, a token naming a speaker the speakers folder lacks, a trigger with
+no candidate (`empty_trigger`), and one scene on two candidates of a trigger (`duplicate_candidate`
+— sometimes meant, as one scene behind two different gates). A host's own tests can run the same
+checks: `ShantyLint.check()` takes the CSV and the resources and touches neither the editor nor the
+disk.
 
 **Save, and stale files.** Save writes the CSV (then reimports it) and every speaker, conversation,
 scene and trigger you changed, through `ResourceSaver`; a new scene that says a new conversation

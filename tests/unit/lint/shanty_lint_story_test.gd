@@ -91,15 +91,22 @@ func test_a_say_step_whose_conversation_loops_makes_the_scene_unplayable() -> vo
 	assert_false(scene.is_playable(), "the lint and the player agree")
 
 
-func test_the_check_asks_a_working_copy_that_holds_the_steps_values() -> void:
+func test_in_the_editor_the_check_asks_a_working_copy_that_holds_the_steps_values() -> void:
 	var fade := FadeStep.new()
 	fade.to_black = false
 	fade.duration = 0.25
-	var copy: FadeStep = ShantyLintStory.working_copy(fade) as FadeStep
+	var copy: FadeStep = ShantyLintStory.working_copy(fade, true) as FadeStep
 
 	assert_ne(copy, fade, "a fresh instance, which runs even where the authored one cannot")
 	assert_false(copy.to_black)
 	assert_eq(copy.duration, 0.25)
+
+
+func test_outside_the_editor_the_check_asks_the_step_itself() -> void:
+	var fade := FadeStep.new()
+
+	assert_false(Engine.is_editor_hint(), "the suite runs outside the editor")
+	assert_same(ShantyLintStory.working_copy(fade), fade, "its script runs: nothing is copied")
 
 
 func test_a_trigger_id_outside_a_closed_set_is_an_error() -> void:
@@ -131,6 +138,45 @@ func test_two_triggers_with_one_id_are_an_error() -> void:
 		_rules(_check([scene], [_trigger(&"start", [scene]), _trigger(&"start", [scene])])),
 		PackedStringArray(["duplicate_trigger:error"])
 	)
+
+
+func test_an_unknown_id_on_two_triggers_is_both_unknown_and_duplicated() -> void:
+	var scene: CutsceneDefinition = _scene()
+	var config := ShantyProjectConfig.new()
+	config.trigger_ids = ["start"]
+	var triggers: Array[StoryTriggerDefinition] = [
+		_trigger(&"elsewhere", [scene]), _trigger(&"elsewhere", [scene])
+	]
+
+	assert_eq(
+		_rules(_check([scene], triggers, config)),
+		PackedStringArray(
+			["unknown_trigger:error", "unknown_trigger:error", "duplicate_trigger:error"]
+		)
+	)
+
+
+func test_a_config_trigger_id_that_cannot_name_a_file_is_flagged() -> void:
+	var scene: CutsceneDefinition = _scene()
+	var config := ShantyProjectConfig.new()
+	config.trigger_ids = ["start", "../outside", "a/b", "", "fine-Id_2"]
+	var issues: Array[ShantyLintIssue] = _check([scene], [_trigger(&"start", [scene])], config)
+
+	assert_eq(
+		_rules(issues),
+		PackedStringArray(
+			[
+				"unsafe_trigger_id:warning",
+				"unsafe_trigger_id:warning",
+				"unsafe_trigger_id:warning",
+			]
+		)
+	)
+	assert_string_contains(issues[0].message, "'../outside'")
+	for id: String in ["start", "fine-Id_2", "Door-1"]:
+		assert_true(ShantyLintStory.is_safe_stem(id), id)
+	for id: String in ["../outside", "..", ".", "a/b", "a\\b", "", "a.b", "res://x"]:
+		assert_false(ShantyLintStory.is_safe_stem(id), id)
 
 
 func test_a_trigger_with_no_candidate_is_a_warning() -> void:

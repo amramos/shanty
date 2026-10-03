@@ -43,14 +43,19 @@ the config gains one optional field.
   config's speakers folder (`ShantyPreviewSpeakers`), default settings.
 - **Scene and trigger lint** (`ShantyLintStory`): errors `unplayable_scene` (a step this version does
   not build, or a Say step whose conversation can loop), `unknown_trigger` (no id, or one outside a
-  closed `trigger_ids`), `duplicate_trigger` and `unknown_scene` (a candidate with no scene, or one
-  the scenes folder does not hold); warnings `empty_trigger` and `duplicate_candidate`.
+  closed `trigger_ids`), `duplicate_trigger` (counted apart from `unknown_trigger`, so an unknown id
+  on two triggers reports both) and `unknown_scene` (a candidate with no scene, or one the scenes
+  folder does not hold); warnings `empty_trigger`, `duplicate_candidate` and `unsafe_trigger_id` (a
+  `trigger_ids` entry that is not letters, digits, `_` and `-`). A step is asked through a fresh copy
+  of its script inside the editor, where the loaded one is a placeholder, and directly elsewhere.
   `ShantyLint.check()` takes the triggers as an optional last argument.
 - **`ShantyProjectConfig.highlight_colour`**, the colour `[hl]` words draw in for the preview and
   Play. `trigger_ids`, `theme_path` and `preview_host_path` are now read: the first by the lint and
   the trigger pane, the others by the preview and Play.
 - **Model classes** for all of it, testable without the editor: `ShantySceneEdits`,
-  `ShantyTriggerEdits`, `ShantyPreviewModel` and `ShantyPlay`.
+  `ShantyTriggerEdits`, `ShantyPreviewModel` and `ShantyPlay`. Every trigger id, from a closed set
+  or typed, must be a safe file name (`ShantyLintStory.is_safe_stem()`), so no id from the config
+  can put a trigger's file outside the triggers folder.
 - **The example plays from the tab:** `example/example_preview_host.gd` (its context, speakers and
   strings), `example/example_trigger.tres` (the moment `lamp`), and a config naming both, with a
   closed set of trigger ids and its highlight colour.
