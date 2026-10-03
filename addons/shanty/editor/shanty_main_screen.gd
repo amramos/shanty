@@ -45,6 +45,8 @@ var _list_refresh_queued: bool = false
 @onready var _preview: BarPreview = %BarPreview
 @onready var _issues: ItemList = %Issues
 @onready var _status: Label = %Status
+## Beside a Save refused for a file changed on disk: the way to see the change.
+@onready var _status_reload: Button = %StatusReload
 
 
 ## Called by the plugin once the tab is in the editor (and by the tests); never
@@ -64,6 +66,7 @@ func start() -> void:
 	_toolbar.locales_chosen.connect(_on_locales_chosen)
 	_toolbar.locale_requested.connect(_on_locale_requested)
 	_toolbar.reload_pressed.connect(_open.bind(true))
+	_status_reload.pressed.connect(_open.bind(true))
 	_toolbar.lint_pressed.connect(_run_lint)
 	_toolbar.save_pressed.connect(_save)
 	_toolbar.play_pressed.connect(_play)
@@ -304,7 +307,7 @@ func _save() -> void:
 		return
 	var result: ShantySaveResult = _model.save()
 	_show_issues(result.issues)
-	_say(result.message)
+	_say(result.message, not result.stale_paths.is_empty())
 	if result.saved:
 		_list.show_model(_model, _selected)
 	if not _in_editor():
@@ -343,8 +346,10 @@ func _filesystem() -> FilesystemRefresh:
 	return _refresh
 
 
-func _say(text: String) -> void:
+## Shows `text` in the status line, with Reload beside it when `offer_reload`.
+func _say(text: String, offer_reload: bool = false) -> void:
 	_status.text = text
+	_status_reload.visible = offer_reload
 
 
 ## True only inside the running editor, where `EditorInterface` is real.

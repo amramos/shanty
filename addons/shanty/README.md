@@ -485,7 +485,8 @@ disk.
 scene and trigger you changed, through `ResourceSaver`; a new scene that says a new conversation
 names that conversation's file rather than holding a copy of it. Each file's content is fingerprinted when the
 tab reads it; if any file Save would write has changed on disk since — someone else edited it —
-Save refuses and writes nothing, and **Reload** reads the files again, dropping your unsaved edits.
+Save refuses and writes nothing, the status line naming the file with a **Reload** beside it — the
+toolbar's does the same — which reads the files again, dropping your unsaved edits.
 It never overwrites rows it has not seen.
 
 **Save is all or nothing.** Every file is first written beside its target (`<file>.shanty-tmp`, or

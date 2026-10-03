@@ -92,6 +92,9 @@ the config gains one optional field.
   it, and is refused while edits are unsaved. `ShantyFiles.create_config()` never overwrites a file:
   it returns `ERR_ALREADY_EXISTS`, and the tab opens an existing config picked in its dialog instead.
 
+- **A Save refused for a file changed on disk offers Reload beside its reason**, in the status
+  line, as well as in the toolbar.
+
 ### Fixed
 
 - A new resource saved alongside another new one that names it — a new scene saying a new

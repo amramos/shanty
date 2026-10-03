@@ -5,6 +5,7 @@ extends GutTest
 ## state and says why, without touching `EditorInterface` or a null config.
 
 const MAIN_SCREEN: PackedScene = preload("res://addons/shanty/editor/shanty_main_screen.tscn")
+const Fixture := preload("res://tests/support/editor_fixture.gd")
 
 var _saved_setting: Variant = null
 
@@ -177,3 +178,24 @@ func test_play_is_refused_with_its_reason_while_edits_are_unsaved() -> void:
 	screen.call(&"_play")
 
 	assert_string_contains((screen.get_node(^"%Status") as Label).text, "Save first")
+
+
+func test_a_save_refused_for_a_changed_file_offers_reload_beside_the_reason() -> void:
+	var config_path: String = Fixture.ROOT + "/shanty_config.tres"
+	ResourceSaver.save(Fixture.build(), config_path)
+	ProjectSettings.set_setting(ShantyProjectConfig.SETTING, config_path)
+	var screen: Control = _started_screen()
+	var model: ShantyEditorModel = screen.call(&"model")
+	var reload: Button = screen.get_node(^"%StatusReload")
+	assert_false(reload.visible)
+	model.set_text("DLG_TALK_02", "pt_BR", "Tchau.")
+	ShantyFiles.write_text(Fixture.CSV_PATH, Fixture.CSV + "THEIRS,Theirs,,\n")
+	screen.call(&"_save")
+
+	assert_string_contains((screen.get_node(^"%Status") as Label).text, "changed on disk")
+	assert_true(reload.visible, "Reload is offered where the reason is")
+	reload.pressed.emit()
+	assert_false(model.is_dirty(), "the unsaved edit is dropped")
+	assert_true(model.document.has_key("THEIRS"), "and their change is read")
+	assert_false(reload.visible)
+	Fixture.remove()
