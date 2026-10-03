@@ -146,3 +146,17 @@ func test_a_claimed_path_is_kept_by_a_commit_and_taken_back_by_a_failure() -> vo
 	assert_false(failing.commit())
 	failing.discard()
 	assert_eq(lost.resource_path, "", "a failed save names nothing")
+
+
+func test_two_resources_never_claim_one_file() -> void:
+	var first := _speaker(&"lamp")
+	var second := _speaker(&"lamp_too")
+	var transaction := ShantySaveTransaction.new()
+	var paths: Dictionary[Resource, String] = {
+		first: ROOT + "/lamp.tres", second: ROOT + "/lamp.tres"
+	}
+
+	assert_false(transaction.claim_paths(paths))
+	assert_string_contains(transaction.failure, ROOT + "/lamp.tres")
+	assert_eq(first.resource_path, "", "nothing is claimed")
+	assert_eq(second.resource_path, "")

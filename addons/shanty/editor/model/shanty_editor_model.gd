@@ -38,6 +38,9 @@ var target_locale: String = ""
 ## A conversation's key prefix as the writer set it, before any of its keys
 ## exists to infer it from (`ShantyConversationEdits.prefix_of()`).
 var key_prefixes: Dictionary[ConversationDefinition, String] = {}
+## Why the last `add_*` call of an edits class made nothing; "" after one that
+## made something.
+var refusal: String = ""
 
 ## Path -> hash when read; "" for a file that did not exist.
 var _hashes: Dictionary[String, String] = {}
@@ -170,6 +173,73 @@ func path_of(resource: Resource) -> String:
 	return _new_paths.get(resource, resource.resource_path)
 
 
+## Where a new `kind` (`speaker`, `scene`...) called `id` is saved,
+## `<folder>/<id>.tres`; "" when it may not be made, with `refusal` saying why:
+## no folder, an id another of its kind has (`taken`), or a path already
+## claimed. **A path is claimed across kinds**: when the config points several
+## folders at one place, a new scene and a new trigger with one id would
+## otherwise both be saved as one file, the second over the first.
+func new_path(kind: String, folder: String, id: String, taken: bool) -> String:
+	refusal = ""
+	if folder.is_empty():
+		refusal = "the config names no %ss folder" % kind
+		return ""
+	if taken:
+		refusal = "a %s '%s' exists" % [kind, id]
+		return ""
+	var path: String = folder.path_join(id + ".tres")
+	var holder: Resource = claimant(path)
+	if holder != null:
+		refusal = "%s is already the file of the %s" % [path, describe(holder)]
+	elif ShantyFiles.exists(path):
+		refusal = "%s already exists" % path
+	return path if refusal.is_empty() else ""
+
+
+## The resource this session holds whose file is `path`, saved or new, or null.
+func claimant(path: String) -> Resource:
+	var held: Array[Resource] = []
+	held.append_array(speakers)
+	held.append_array(conversations)
+	held.append_array(scenes)
+	held.append_array(triggers)
+	for resource: Resource in held:
+		if path_of(resource) == path:
+			return resource
+	return null
+
+
+## True when a config is open and `id` matches `pattern`; otherwise false, with
+## `refusal` saying which. The edits classes' first check before `new_path()`.
+func accepts_id(id: String, pattern: String) -> bool:
+	refusal = ""
+	if config == null:
+		refusal = "no Shanty config is open"
+	elif RegEx.create_from_string(pattern).search(id) == null:
+		refusal = "'%s' is not a lower-case id (a-z, 0-9, _)" % id
+	return refusal.is_empty()
+
+
+## `scene 'lamp'`, `new trigger 'lamp'`: what `resource` is, for a message.
+func describe(resource: Resource) -> String:
+	var kind: String = "resource"
+	var id: String = ""
+	if resource is SpeakerDefinition:
+		kind = "speaker"
+		id = String((resource as SpeakerDefinition).speaker_id)
+	elif resource is ConversationDefinition:
+		kind = "conversation"
+		id = String((resource as ConversationDefinition).conversation_id)
+	elif resource is CutsceneDefinition:
+		kind = "scene"
+		id = String((resource as CutsceneDefinition).scene_id)
+	elif resource is StoryTriggerDefinition:
+		kind = "trigger"
+		id = String((resource as StoryTriggerDefinition).trigger_id)
+	var unsaved: String = "new " if _new_paths.has(resource) else ""
+	return "%s%s '%s'" % [unsaved, kind, id]
+
+
 func is_dirty() -> bool:
 	return _csv_dirty or not _dirty.is_empty()
 
@@ -226,8 +296,10 @@ func _paths_to_write() -> PackedStringArray:
 func _write(issues: Array[ShantyLintIssue]) -> ShantySaveResult:
 	var transaction := ShantySaveTransaction.new()
 	var resources: Array[Resource] = _dirty.duplicate()
-	transaction.claim_paths(_new_paths)
-	var staged: bool = not _csv_dirty or transaction.stage_text(config.csv_path, document.to_text())
+	var staged: bool = transaction.claim_paths(_new_paths)
+	staged = (
+		staged and (not _csv_dirty or transaction.stage_text(config.csv_path, document.to_text()))
+	)
 	for resource: Resource in resources:
 		staged = staged and transaction.stage_resource(resource, path_of(resource))
 	var committed: bool = staged and transaction.commit()
@@ -282,6 +354,7 @@ func _reset() -> void:
 	source_locale = ""
 	target_locale = ""
 	key_prefixes.clear()
+	refusal = ""
 	_hashes.clear()
 	_dirty.clear()
 	_new_paths.clear()

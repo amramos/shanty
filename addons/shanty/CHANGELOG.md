@@ -75,6 +75,13 @@ the config gains one optional field.
   conversation — is written as a reference to that file, not as an embedded copy:
   `ShantySaveTransaction.claim_paths()` names every new resource before anything is staged, and a
   failed save takes the names back.
+- **Two new resources can no longer claim one file.** A new resource is saved as `<folder>/<id>.tres`,
+  and the check for a taken file looked only at the disk, so with one folder serving several kinds
+  an unsaved scene `lamp` and an unsaved trigger `lamp` both claimed `lamp.tres` and Save wrote one
+  over the other. Every `add_*` now refuses a path anything the tab holds already claims, saved or
+  new, of any kind, and `ShantyEditorModel.refusal` names the clash (`… lamp.tres is already the file
+  of the new scene 'lamp'`), which the status line shows; `ShantySaveTransaction.claim_paths()`
+  refuses two resources at one path as a last guard.
 
 ## 0.2.0
 

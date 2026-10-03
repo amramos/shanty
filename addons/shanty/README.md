@@ -357,8 +357,11 @@ This repository's own setting points at `example/shanty_config.tres` too, so ope
 lighthouse conversation in the tab.
 
 **The panes.** The left pane lists your speakers, conversations, scenes and triggers; type an id
-and press **+ Speaker**, **+ Conversation**, **+ Scene** or **+ Trigger** to make one. When your
-config lists `trigger_ids`, **+ Trigger** instead offers the ids that have no trigger yet. The list
+and press **+ Speaker**, **+ Conversation**, **+ Scene** or **+ Trigger** to make one; it is saved as
+`<folder>/<id>.tres`. When your config lists `trigger_ids`, **+ Trigger** instead offers the ids that
+have no trigger yet. A new one whose file is already taken — on disk, or by anything the tab holds,
+saved or not, of any kind (one folder may serve several) — is refused, and the status line names
+the clash. The list
 follows your edits: an id changed in a form shows in its row, and in those free ids, straight away.
 The centre edits what you picked:
 

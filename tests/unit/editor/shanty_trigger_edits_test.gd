@@ -162,3 +162,42 @@ func test_lint_marks_a_candidate_with_no_scene() -> void:
 
 	assert_eq(rules, [ShantyLint.RULE_UNKNOWN_SCENE] as Array[StringName])
 	assert_false(_model.save().saved, "an error refuses Save")
+
+
+## One folder for scenes and triggers, as a config may have it: a new scene and
+## a new trigger with one id would both be `<folder>/lamp.tres`.
+func test_a_trigger_cannot_claim_the_file_an_unsaved_scene_claimed() -> void:
+	var shared := ShantyEditorModel.new()
+	var config: ShantyProjectConfig = Fixture.build()
+	config.triggers_folder = config.scenes_folder
+	shared.open(config, true)
+	var scene: CutsceneDefinition = ShantySceneEdits.add_scene(shared, "lamp")
+	var path: String = Fixture.SCENES + "/lamp.tres"
+
+	assert_not_null(scene)
+	assert_eq(shared.refusal, "")
+	assert_null(ShantyTriggerEdits.add_trigger(shared, "lamp"), "the scene holds that file")
+	assert_string_contains(shared.refusal, path)
+	assert_string_contains(shared.refusal, "new scene 'lamp'")
+	assert_eq(shared.triggers.size(), 0, "nothing is made")
+	assert_true(shared.save().saved)
+	var reopened := ShantyEditorModel.new()
+	reopened.open(config, true)
+	assert_not_null(ShantySceneEdits.find(reopened, &"lamp"), "the scene is what was saved")
+	assert_null(ShantyTriggerEdits.add_trigger(reopened, "lamp"))
+	assert_string_contains(reopened.refusal, "scene 'lamp'", "a saved file is claimed too")
+
+
+func test_a_speaker_and_a_conversation_share_no_file() -> void:
+	var shared := ShantyEditorModel.new()
+	var config: ShantyProjectConfig = Fixture.build()
+	config.conversations_folder = config.speakers_folder
+	shared.open(config, true)
+
+	assert_not_null(ShantyConversationEdits.add_conversation(shared, "keeper"))
+	assert_null(ShantySpeakerEdits.add_speaker(shared, "keeper"))
+	assert_string_contains(shared.refusal, "new conversation 'keeper'")
+	assert_null(ShantySpeakerEdits.add_speaker(shared, "Keeper"))
+	assert_string_contains(shared.refusal, "not a lower-case id")
+	assert_null(ShantySpeakerEdits.add_speaker(shared, "ana"))
+	assert_eq(shared.refusal, "a speaker 'ana' exists")

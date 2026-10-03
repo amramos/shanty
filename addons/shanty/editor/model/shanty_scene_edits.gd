@@ -22,15 +22,16 @@ static func find(model: ShantyEditorModel, id: StringName) -> CutsceneDefinition
 
 ## A new scene saved as `<scenes folder>/<id>.tres`, its title and synopsis keys
 ## named by the scheme with their two rows together after the other scenes'.
-## Null, changing nothing, for a bad or taken id, an existing file, or no config.
+## Null, changing nothing and with `model.refusal` saying why, for a bad or
+## taken id, a file that exists or that anything else this session claimed, or
+## no config.
 static func add_scene(model: ShantyEditorModel, id: String) -> CutsceneDefinition:
-	if model.config == null:
+	if not model.accepts_id(id, ID_PATTERN):
 		return null
-	var folder: String = model.config.scenes_folder
-	var path: String = folder.path_join(id + ".tres")
-	if RegEx.create_from_string(ID_PATTERN).search(id) == null or folder.is_empty():
-		return null
-	if find(model, StringName(id)) != null or ShantyFiles.exists(path):
+	var path: String = model.new_path(
+		"scene", model.config.scenes_folder, id, find(model, StringName(id)) != null
+	)
+	if path.is_empty():
 		return null
 	var scene := CutsceneDefinition.new()
 	scene.scene_id = StringName(id)

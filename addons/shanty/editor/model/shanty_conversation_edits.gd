@@ -12,18 +12,18 @@ const ID_PATTERN: String = "^[a-z0-9_]+$"
 
 
 ## A new conversation saved as `<conversations folder>/<id>.tres`, its keys
-## under `prefix` (the scheme's default when empty). Null, changing nothing,
-## for a bad or taken id, an existing file, or no config open.
+## under `prefix` (the scheme's default when empty). Null, changing nothing
+## and with `model.refusal` saying why, for a bad or taken id, a file that
+## exists or that anything else this session claimed, or no config open.
 static func add_conversation(
 	model: ShantyEditorModel, id: String, prefix: String = ""
 ) -> ConversationDefinition:
-	if model.config == null:
+	if not model.accepts_id(id, ID_PATTERN):
 		return null
-	var folder: String = model.config.conversations_folder
-	var path: String = folder.path_join(id + ".tres")
-	if RegEx.create_from_string(ID_PATTERN).search(id) == null or folder.is_empty():
-		return null
-	if find(model, StringName(id)) != null or ShantyFiles.exists(path):
+	var path: String = model.new_path(
+		"conversation", model.config.conversations_folder, id, find(model, StringName(id)) != null
+	)
+	if path.is_empty():
 		return null
 	var conversation := ConversationDefinition.new()
 	conversation.conversation_id = StringName(id)

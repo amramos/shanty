@@ -59,13 +59,17 @@ static func id_refusal(model: ShantyEditorModel, id: String) -> String:
 
 
 ## A new trigger saved as `<triggers folder>/<id>.tres`. Null, changing
-## nothing, for an id the set does not allow, a taken id, an existing file, or
-## no config.
+## nothing and with `model.refusal` saying why, for an id the set does not
+## allow, a taken id, a file that exists or that anything else this session
+## claimed, or no config.
 static func add_trigger(model: ShantyEditorModel, id: String) -> StoryTriggerDefinition:
-	if model.config == null or model.config.triggers_folder.is_empty() or not allows(model, id):
+	model.refusal = "no Shanty config is open" if model.config == null else id_refusal(model, id)
+	if not model.refusal.is_empty():
 		return null
-	var path: String = model.config.triggers_folder.path_join(id + ".tres")
-	if find(model, StringName(id)) != null or ShantyFiles.exists(path):
+	var path: String = model.new_path(
+		"trigger", model.config.triggers_folder, id, find(model, StringName(id)) != null
+	)
+	if path.is_empty():
 		return null
 	var trigger := StoryTriggerDefinition.new()
 	trigger.trigger_id = StringName(id)

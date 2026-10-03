@@ -41,12 +41,19 @@ var _claimed: Array[Resource] = []
 ## be saved at, before anything is staged: then one new resource naming another
 ## -- a new scene saying a new conversation -- is written as a reference to
 ## that file, not as a copy embedded in it. Unless the commit succeeds,
-## `discard()` takes the paths back.
-func claim_paths(paths: Dictionary[Resource, String]) -> void:
+## `discard()` takes the paths back. **Two resources never claim one file**:
+## false, claiming nothing and with `failure` naming the path, when they would.
+func claim_paths(paths: Dictionary[Resource, String]) -> bool:
+	var seen: Dictionary[String, bool] = {}
+	for resource: Resource in paths:
+		if seen.has(paths[resource]):
+			return _fail("two new resources would both be saved as %s." % paths[resource])
+		seen[paths[resource]] = true
 	for resource: Resource in paths:
 		if resource.resource_path.is_empty():
 			ShantyFiles.take_over(resource, paths[resource])
 			_claimed.append(resource)
+	return true
 
 
 ## Stages `text` as the next content of `path`. False, with `failure` set, when

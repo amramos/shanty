@@ -157,13 +157,7 @@ func _on_create_requested(kind: StringName, id: String) -> void:
 		&"trigger":
 			made = ShantyTriggerEdits.add_trigger(_model, id)
 	if made == null:
-		var refusal: String = (
-			ShantyTriggerEdits.id_refusal(_model, id) if kind == &"trigger" else ""
-		)
-		if not refusal.is_empty():
-			_say("No trigger made: %s." % refusal)
-		else:
-			_say("No %s made: '%s' is not a lower-case id, or it is taken." % [kind, id])
+		_say("No %s made: %s." % [kind, _model.refusal])
 		return
 	_pick(made)
 
