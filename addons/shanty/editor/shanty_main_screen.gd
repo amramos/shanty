@@ -69,6 +69,7 @@ func start() -> void:
 	_toolbar.play_pressed.connect(_play)
 	_toolbar.create_config_pressed.connect(_on_create_config_pressed)
 	_toolbar.inspect_config_pressed.connect(_inspect_config)
+	_toolbar.host_keys_pressed.connect(_add_host_keys)
 	_list.resource_selected.connect(_select)
 	_list.create_requested.connect(_on_create_requested)
 	_centre.inspect_requested.connect(_inspect)
@@ -97,7 +98,7 @@ func _show_opened() -> void:
 	var missing: bool = _model.problem != ShantyEditorModel.Problem.NONE
 	_preview.show_config(_model.config)
 	_pick(null)
-	_toolbar.show_locales(_model.locales(), _model.source_locale, _model.target_locale)
+	_show_locales()
 	_toolbar.show_config_missing(missing)
 	if missing:
 		_say(_model.status + " Config ▾ > Create config… makes one.")
@@ -133,6 +134,16 @@ func _on_line_picked(line: DialogueLine) -> void:
 	_preview.show_line(_model, line)
 
 
+func _show_locales() -> void:
+	_toolbar.show_locales(
+		_model.source_choices(),
+		_model.locales(),
+		_model.source_locale,
+		_model.target_locale,
+		_model.suggested_locale()
+	)
+
+
 func _on_locales_chosen(source: String, target: String) -> void:
 	_model.set_locales(source, target)
 	_show_selected()
@@ -142,7 +153,7 @@ func _on_locale_requested(locale: String) -> void:
 	if _model.config == null or not _model.add_locale(locale):
 		_say("'%s' is not a locale code, or the CSV already has it." % locale)
 		return
-	_toolbar.show_locales(_model.locales(), _model.source_locale, _model.target_locale)
+	_show_locales()
 	_show_selected()
 	_say("Added the %s column. Save writes it." % locale)
 
@@ -209,6 +220,18 @@ func _create_config(path: String) -> void:
 			% [done, path, ShantyProjectConfig.SETTING]
 		)
 	)
+
+
+func _add_host_keys() -> void:
+	if _model.config == null:
+		_say(NO_CONFIG_HINT)
+		return
+	var added: PackedStringArray = ShantyHostKeys.add(_model)
+	if added.is_empty():
+		_say("%s already has every host key." % _model.config.csv_path)
+		return
+	_show_selected()
+	_say("Added %s to %s. Save writes them." % [", ".join(added), _model.config.csv_path])
 
 
 func _inspect_config() -> void:

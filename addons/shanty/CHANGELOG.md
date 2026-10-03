@@ -71,6 +71,15 @@ the config gains one optional field.
 
 ### Changed
 
+- **A new config's CSV is ready to write in.** `ShantyFiles.create_config()` writes the CSV beside
+  it — `keys`, the config's `source_locale`, `_flags`, `_notes`, and a row for each host key with
+  its English text — unless a CSV is already there. `ShantyHostContract.DEFAULT_TEXT` (with
+  `DEFAULT_TEXT_LOCALE`) publishes that text. A CSV opened without the host keys says so in the
+  status line, and **Config ▾ > Add host keys** (`ShantyHostKeys`) adds them as one block — on
+  request only, since a game may declare them elsewhere — so the line preview's reply turn shows
+  the placeholder rather than its key. **+ Locale** fills Source while the CSV has no locale
+  column, suggesting the config's `source_locale`, and the Source dropdown lists `source_locale`
+  first.
 - **Create config… is reachable at any time**, from the toolbar's new **Config ▾** menu beside
   **Open config in Inspector**, rather than only while no config is open. Switching goes through
   `ShantyEditorModel.switch_config()`, which points `shanty/config_path` at the new config and opens

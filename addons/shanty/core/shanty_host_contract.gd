@@ -60,3 +60,14 @@ const TRANSLATION_KEYS: PackedStringArray = [
 	# The caption a replay wears in the frame's top-right corner.
 	"SHANTY_READING_AGAIN",
 ]
+
+## The locale `DEFAULT_TEXT` is written in.
+const DEFAULT_TEXT_LOCALE: String = "en"
+## Each translation key's starting text, which the Shanty tab writes into a new
+## CSV and adds to one that lacks the keys. A host's own wording, and every
+## other locale, is the host's to write; nothing at runtime falls back to it.
+const DEFAULT_TEXT: Dictionary[String, String] = {
+	"SHANTY_HOLD_TO_SKIP": "Hold to skip",
+	"SHANTY_REPLY_PLACEHOLDER": "…",
+	"SHANTY_READING_AGAIN": "Reading again",
+}

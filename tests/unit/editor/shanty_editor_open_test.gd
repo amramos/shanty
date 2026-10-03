@@ -93,9 +93,10 @@ func test_the_setting_defaults_to_the_example_inside_the_addon() -> void:
 	assert_eq(model.open_path(ShantyProjectConfig.DEFAULT_PATH), ShantyEditorModel.Problem.NONE)
 
 
-func test_a_created_config_opens_on_a_csv_save_will_create() -> void:
+func test_a_config_whose_csv_is_gone_opens_on_a_csv_save_will_create() -> void:
 	DirAccess.make_dir_recursive_absolute(NEW_CONFIG.get_base_dir())
 	assert_eq(ShantyFiles.create_config(NEW_CONFIG), OK)
+	ShantyFiles.remove(NEW_CONFIG.get_base_dir().path_join(ShantyProjectConfig.NEW_CSV_NAME))
 	var model := ShantyEditorModel.new()
 
 	assert_eq(model.open_path(NEW_CONFIG, true), ShantyEditorModel.Problem.NONE)

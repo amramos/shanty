@@ -163,6 +163,9 @@ static func configured() -> ShantyProjectConfig:
 
 ## Saves a new config at `path`, its CSV and every folder beside it, so the
 ## tab opens on it at once; the writer edits it in the Inspector from there.
+## The CSV starts with `keys`, the config's `source_locale`, `_flags` and
+## `_notes`, and a row for each host key with its default text -- unless a CSV
+## is already there, which is kept as it is.
 ## `ERR_ALREADY_EXISTS`, writing nothing, when a file is at `path`: an
 ## existing config is opened, never overwritten with a blank one.
 static func create_config(path: String) -> Error:
@@ -175,6 +178,15 @@ static func create_config(path: String) -> Error:
 	made.conversations_folder = folder
 	made.scenes_folder = folder
 	made.triggers_folder = folder
+	if not exists(made.csv_path):
+		var csv: ShantyCsvDocument = ShantyCsvDocument.parse("")
+		csv.add_locale(made.source_locale)
+		csv.ensure_column(ShantyCsvDocument.FLAGS_HEADER)
+		csv.ensure_column(ShantyCsvDocument.NOTES_HEADER)
+		ShantyHostKeys.add_rows(csv)
+		var written: Error = write_text(made.csv_path, csv.to_text())
+		if written != OK:
+			return written
 	var error: Error = ResourceSaver.save(made, path)
 	if error == OK:
 		made.take_over_path(path)

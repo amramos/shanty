@@ -48,6 +48,7 @@ func test_an_empty_setting_shows_the_empty_state_and_says_why() -> void:
 	var menu: PopupMenu = _config_menu(screen)
 	assert_false(menu.is_item_disabled(0), "Create config… is offered")
 	assert_true(menu.is_item_disabled(1), "there is no config to inspect")
+	assert_true(menu.is_item_disabled(2), "nor a CSV to add host keys to")
 
 
 func test_the_config_menu_offers_create_config_while_a_config_is_open() -> void:
@@ -59,6 +60,12 @@ func test_the_config_menu_offers_create_config_while_a_config_is_open() -> void:
 	assert_false(menu.is_item_disabled(0))
 	assert_eq(menu.get_item_text(1), "Open config in Inspector")
 	assert_false(menu.is_item_disabled(1))
+	assert_eq(menu.get_item_text(2), "Add host keys")
+	assert_false(menu.is_item_disabled(2))
+	screen.call(&"_add_host_keys")
+	assert_string_contains(
+		(screen.get_node(^"%Status") as Label).text, "already has every host key"
+	)
 
 
 func _config_menu(screen: Control) -> PopupMenu:

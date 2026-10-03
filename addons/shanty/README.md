@@ -17,7 +17,9 @@ through `class_name`, so a game plays its scenes whether it is enabled or not.
 
 Copy `addons/shanty/` into your project — it is the only folder you need. A release's source archive
 contains exactly that folder. Then declare what the [host contract](#the-host-contract) asks for:
-three translation keys, and optionally a theme.
+three translation keys, and optionally a theme. With the plugin enabled, the
+[Shanty tab](#the-shanty-tab) writes the three keys for you: a config it creates starts its CSV with
+them, and **Config ▾ > Add host keys** adds them to a CSV that lacks them.
 
 Every release carries `MANIFEST.sha256`: the SHA-256 of every file in the addon (`.uid` and
 `.import` files aside, which Godot writes), so you can check that your copy is the release,
@@ -330,9 +332,14 @@ installed Shanty opens the tab on the demo. When the setting is empty, names no 
 something that is not a config, the tab says which in its status line and shows an empty state.
 The toolbar's **Config ▾** menu is there whatever is open: **Create config…** asks where to save
 one, and the tab writes a new config whose CSV (`dialogue_strings.csv`) and folders sit beside it,
-points the setting at it, opens it, and hands it to the Inspector — or, when you pick a config that
+points the setting at it, opens it, and hands it to the Inspector. The new CSV has a `keys` column,
+your `source_locale` column (`en`), `_flags` and `_notes`, and a row for each of the three
+[host keys](#the-host-contract) in English; a CSV already at that path is kept as it is — or, when you pick a config that
 already exists, opens that one instead of overwriting it. It is refused while the tab holds unsaved
 edits, which opening another config would drop. **Open config in Inspector** shows the open one.
+**Add host keys** gives your CSV a row for each host key it lacks, in English, as one block; when
+the CSV you open lacks any, the status line names them. It is a menu item, never automatic, because
+your game may declare those keys in a catalogue of its own.
 You can also make one with **Create New > Resource… > ShantyProjectConfig**. Set:
 
 - `csv_path` — your translation CSV.
@@ -427,8 +434,9 @@ inside your project to a file of that kind, and says which part it refused other
 
 **Two locales at a time.** The toolbar's **Source** and **Target** dropdowns list every locale column
 your CSV has — the header is the only list of locales there is — and the table shows those two side
-by side. An empty target cell is drawn as an empty dashed box. **+ Locale** adds a column for a new
-language; nothing else needs to change.
+by side; Source lists your config's `source_locale` first. An empty target cell is drawn as an empty
+dashed box. **+ Locale** adds a column for a new language — the Source, while the CSV has none yet
+(the field suggests your `source_locale`), else the Target; nothing else needs to change.
 
 **Coverage is a report.** The strip reads like `en 14/14 · pt_BR 14/14 · fr 10/14`, an incomplete
 locale in the editor's warning colour. An empty cell never blocks Save: whether a missing
@@ -550,7 +558,9 @@ this changelog.
   highlight colour once with `ShantyText.set_highlight_colour()`.
 - **Three translation keys**, in every locale you offer: `SHANTY_HOLD_TO_SKIP` (the skip control's
   caption), `SHANTY_REPLY_PLACEHOLDER` (what stands in the line while replies wait) and
-  `SHANTY_READING_AGAIN` (the caption a replay wears in the frame's top-right corner).
+  `SHANTY_READING_AGAIN` (the caption a replay wears in the frame's top-right corner). Their English
+  starting text is `ShantyHostContract.DEFAULT_TEXT`, which the tab writes; at runtime a missing key
+  shows as the raw key.
 - **A theme, optionally.** Declare none and everything draws with the engine's defaults on a black
   ground.
 
@@ -627,7 +637,7 @@ requires is your rule, not Shanty's.
 | `core/` | Pure code, the four host interfaces and the contract: `ShantyRunner`, `ShantySelector`, `ShantyText`, `ShantyViewSettings`, `ShantySpeaker`; `ShantyContext`, `ShantyCondition`, `ShantyEffect`, `ShantySpeakerProvider`; `ShantyHostContract` |
 | `ui/` | `CutscenePlayer` (layer, shield, backdrop, letterbox, fade, hold-to-skip, replay) and `DialogueView` (the top-docked bar), with the pieces they are built from: `ShantyBackdrop` (integer-scale still and pan), `ShantyPressInput` (tap versus hold, and the waits a tap may cut short), `ShantySay` (a scene's conversations), `ShantyMusic` (duck/swap and their undo), `ShantyTypewriter` (a line typing out), `ShantyReplyTurn` (the reply speaker's turn and its buttons), `ShantyLineAudio` (a line's voice and its blips), `ShantyChoiceButton`, `ShantyContinueMarker`, `SkipHold` |
 | `lint/` | Pure checks the tab and a host's tests share, with no editor and no file access: `ShantyCsvDocument` (with `ShantyCsvCodec` and `ShantyCsvRow`) reads and writes the translation CSV, `ShantyLocaleCoverage` reports one locale, `ShantyKeyScheme` names keys, `ShantyLint` (with `ShantyLintText` and `ShantyLintStory`) returns `ShantyLintIssue`s, and `ShantyProjectConfig` with its `ShantyFlagRule`s is a host's configuration |
-| `editor/` | The Shanty tab. `model/` holds everything it knows and does, testable without the editor: `ShantyEditorModel`, `ShantySpeakerEdits`, `ShantyConversationEdits`, `ShantySceneEdits`, `ShantyTriggerEdits`, `ShantyPreviewModel` (what the line preview draws), `ShantyPlay` (what Play asks for), `ShantyClassCatalog` (the pickers' classes), `ShantySaveResult`, `ShantySaveTransaction`, and `ShantyFiles`, the one script that opens a file your config names. `preview/` is Play's game-window side: `preview_host.tscn`, `ShantyPreviewHost` and `ShantyPreviewSpeakers`. The scenes and scripts beside them are thin panes over that model |
+| `editor/` | The Shanty tab. `model/` holds everything it knows and does, testable without the editor: `ShantyEditorModel`, `ShantySpeakerEdits`, `ShantyConversationEdits`, `ShantySceneEdits`, `ShantyTriggerEdits`, `ShantyPreviewModel` (what the line preview draws), `ShantyPlay` (what Play asks for), `ShantyClassCatalog` (the pickers' classes), `ShantyHostKeys` (the host keys in your CSV), `ShantySaveResult`, `ShantySaveTransaction`, and `ShantyFiles`, the one script that opens a file your config names. `preview/` is Play's game-window side: `preview_host.tscn`, `ShantyPreviewHost` and `ShantyPreviewSpeakers`. The scenes and scripts beside them are thin panes over that model |
 | `example/` | A whole host with no other code: context, condition, effect, speaker provider, host scene, a three-line conversation with one choice, its scene and trigger, two speakers, its own strings, `shanty_config.tres`, its configuration for the Shanty tab, and `example_preview_host.gd`, what Play plays it with. Its scripts declare no `class_name`, so installing Shanty spends no global names on it. It reads `example_strings.csv` at runtime, which an export does not include, so it runs from the editor; a real host adds its catalogue through Project Settings and needs no loader |
 | `plugin.cfg`, `plugin.gd` | The editor plugin: the Shanty tab and the `shanty/config_path` setting |
 | `CHANGELOG.md`, `LICENSE`, `MANIFEST.sha256` | What each version changed; MIT; the release's file hashes |

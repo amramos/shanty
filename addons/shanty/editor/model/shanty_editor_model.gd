@@ -85,8 +85,17 @@ func open(with_config: ShantyProjectConfig, fresh: bool = false) -> String:
 	target_locale = pair[1]
 	problem = Problem.NONE
 	status = ""
+	var missing: PackedStringArray = ShantyHostKeys.missing(document)
 	if not ShantyFiles.exists(config.csv_path):
 		status = "The CSV %s does not exist yet; Save creates it." % config.csv_path
+	elif not missing.is_empty():
+		status = (
+			(
+				"%s lacks %s: Config ▾ > Add host keys adds them, unless your game's own"
+				+ " catalogue declares them."
+			)
+			% [config.csv_path, ", ".join(missing)]
+		)
 	changed.emit()
 	return status
 
@@ -124,12 +133,35 @@ func set_locales(source: String, target: String) -> void:
 	changed.emit()
 
 
-## Adds a locale column. False when the name is not a locale code or exists.
+## The locales the Source dropdown offers: the config's `source_locale` first
+## when the CSV has it, then the rest in header order.
+func source_choices() -> PackedStringArray:
+	var choices: PackedStringArray = locales()
+	var preferred: String = config.source_locale if config != null else ""
+	if choices.has(preferred):
+		choices.remove_at(choices.find(preferred))
+		choices.insert(0, preferred)
+	return choices
+
+
+## The locale a new column should be, while Source is empty: the config's
+## `source_locale`. "" once there is a source.
+func suggested_locale() -> String:
+	if config == null or not source_locale.is_empty():
+		return ""
+	return config.source_locale
+
+
+## Adds a locale column. It becomes the source while there is none -- a CSV
+## with no locale column yet -- and otherwise the target while that is empty
+## or the source. False when the name is not a locale code or exists.
 func add_locale(locale: String) -> bool:
 	if not document.add_locale(locale):
 		return false
 	_csv_dirty = true
-	if target_locale.is_empty() or target_locale == source_locale:
+	if source_locale.is_empty():
+		source_locale = locale
+	elif target_locale.is_empty() or target_locale == source_locale:
 		target_locale = locale
 	changed.emit()
 	return true
@@ -206,25 +238,12 @@ func new_path(kind: String, folder: String, id: String, taken: bool) -> String:
 		refusal = "a %s '%s' exists" % [kind, id]
 		return ""
 	var path: String = folder.path_join(id + ".tres")
-	var holder: Resource = claimant(path)
+	var holder: Resource = _claimant(path)
 	if holder != null:
-		refusal = "%s is already the file of the %s" % [path, describe(holder)]
+		refusal = "%s is already the file of the %s" % [path, _describe(holder)]
 	elif ShantyFiles.exists(path):
 		refusal = "%s already exists" % path
 	return path if refusal.is_empty() else ""
-
-
-## The resource this session holds whose file is `path`, saved or new, or null.
-func claimant(path: String) -> Resource:
-	var held: Array[Resource] = []
-	held.append_array(speakers)
-	held.append_array(conversations)
-	held.append_array(scenes)
-	held.append_array(triggers)
-	for resource: Resource in held:
-		if path_of(resource) == path:
-			return resource
-	return null
 
 
 ## True when a config is open and `id` matches `pattern`; otherwise false, with
@@ -236,26 +255,6 @@ func accepts_id(id: String, pattern: String) -> bool:
 	elif RegEx.create_from_string(pattern).search(id) == null:
 		refusal = "'%s' is not a lower-case id (a-z, 0-9, _)" % id
 	return refusal.is_empty()
-
-
-## `scene 'lamp'`, `new trigger 'lamp'`: what `resource` is, for a message.
-func describe(resource: Resource) -> String:
-	var kind: String = "resource"
-	var id: String = ""
-	if resource is SpeakerDefinition:
-		kind = "speaker"
-		id = String((resource as SpeakerDefinition).speaker_id)
-	elif resource is ConversationDefinition:
-		kind = "conversation"
-		id = String((resource as ConversationDefinition).conversation_id)
-	elif resource is CutsceneDefinition:
-		kind = "scene"
-		id = String((resource as CutsceneDefinition).scene_id)
-	elif resource is StoryTriggerDefinition:
-		kind = "trigger"
-		id = String((resource as StoryTriggerDefinition).trigger_id)
-	var unsaved: String = "new " if _new_paths.has(resource) else ""
-	return "%s%s '%s'" % [unsaved, kind, id]
 
 
 func is_dirty() -> bool:
@@ -404,3 +403,36 @@ func _keep(resource: Resource) -> bool:
 	else:
 		return false
 	return true
+
+
+## The resource this session holds whose file is `path`, saved or new, or null.
+func _claimant(path: String) -> Resource:
+	var held: Array[Resource] = []
+	held.append_array(speakers)
+	held.append_array(conversations)
+	held.append_array(scenes)
+	held.append_array(triggers)
+	for resource: Resource in held:
+		if path_of(resource) == path:
+			return resource
+	return null
+
+
+## `scene 'lamp'`, `new trigger 'lamp'`: what `resource` is, for a message.
+func _describe(resource: Resource) -> String:
+	var kind: String = "resource"
+	var id: String = ""
+	if resource is SpeakerDefinition:
+		kind = "speaker"
+		id = String((resource as SpeakerDefinition).speaker_id)
+	elif resource is ConversationDefinition:
+		kind = "conversation"
+		id = String((resource as ConversationDefinition).conversation_id)
+	elif resource is CutsceneDefinition:
+		kind = "scene"
+		id = String((resource as CutsceneDefinition).scene_id)
+	elif resource is StoryTriggerDefinition:
+		kind = "trigger"
+		id = String((resource as StoryTriggerDefinition).trigger_id)
+	var unsaved: String = "new " if _new_paths.has(resource) else ""
+	return "%s%s '%s'" % [unsaved, kind, id]

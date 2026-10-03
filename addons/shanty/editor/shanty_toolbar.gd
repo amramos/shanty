@@ -13,10 +13,11 @@ signal lint_pressed
 signal save_pressed
 signal create_config_pressed
 signal inspect_config_pressed
+signal host_keys_pressed
 signal play_pressed
 
 ## The Config menu's items, by id.
-enum ConfigItem { CREATE, INSPECT }
+enum ConfigItem { CREATE, INSPECT, HOST_KEYS }
 
 const Palette := preload("res://addons/shanty/editor/shanty_editor_palette.gd")
 
@@ -42,6 +43,11 @@ func build() -> void:
 		"Save a new ShantyProjectConfig, point the project at it and open it"
 	)
 	items.add_item("Open config in Inspector", ConfigItem.INSPECT)
+	items.add_item("Add host keys", ConfigItem.HOST_KEYS)
+	items.set_item_tooltip(
+		items.get_item_index(ConfigItem.HOST_KEYS),
+		"Add rows for the keys Shanty's own controls show, with their English text"
+	)
 	items.id_pressed.connect(_on_config_item)
 	add_child(_config_menu)
 	_add_caption("Source")
@@ -72,6 +78,7 @@ func build() -> void:
 func show_config_missing(missing: bool) -> void:
 	var items: PopupMenu = _config_menu.get_popup()
 	items.set_item_disabled(items.get_item_index(ConfigItem.INSPECT), missing)
+	items.set_item_disabled(items.get_item_index(ConfigItem.HOST_KEYS), missing)
 
 
 ## The Config menu, for the tests.
@@ -79,10 +86,21 @@ func config_menu() -> PopupMenu:
 	return _config_menu.get_popup()
 
 
-## Fills both dropdowns with the CSV's locales.
-func show_locales(locales: PackedStringArray, source: String, target: String) -> void:
-	_fill(_source, locales, source)
+## Fills the dropdowns with the CSV's locales -- Source's in `sources`' order,
+## the config's own first -- and names `suggested` in the new-locale field
+## while there is no source to pick.
+func show_locales(
+	sources: PackedStringArray,
+	locales: PackedStringArray,
+	source: String,
+	target: String,
+	suggested: String = ""
+) -> void:
+	_fill(_source, sources, source)
 	_fill(_target, locales, target)
+	_new_locale.placeholder_text = (
+		"new locale" if suggested.is_empty() else "new locale, e.g. %s" % suggested
+	)
 
 
 ## `en 12/12 · pt_BR 9/12`, an incomplete locale in the editor's warning colour.
@@ -116,6 +134,8 @@ func _on_config_item(id: int) -> void:
 			create_config_pressed.emit()
 		ConfigItem.INSPECT:
 			inspect_config_pressed.emit()
+		ConfigItem.HOST_KEYS:
+			host_keys_pressed.emit()
 
 
 func _on_locale_selected() -> void:
