@@ -38,7 +38,11 @@ the config gains one optional field.
   to `user://shanty_preview.cfg` and runs `editor/preview/preview_host.tscn` through
   `EditorInterface.play_custom_scene()`. The preview host applies the locale, the highlight colour
   and the theme in code, plays through the real `CutscenePlayer`, prints every effect and the
-  record, and closes on Escape. It is refused while the tab holds unsaved edits.
+  record, and closes on Escape. It is refused while the tab holds unsaved edits. The host takes the
+  request as it reads it — a request plays once, and a second launch without the tab plays nothing
+  — and refuses one, each with its own reason, that lacks a field (the scene or trigger, the locale,
+  the config: all three are required) or names anything but a canonical `res://` path to a file of
+  the expected type: no other scheme, no absolute path, no `.`, `..` or empty part.
 - **`ShantyPreviewHost`**, the base a host extends for Play — `make_context()`,
   `make_speaker_provider()`, `make_settings()`, `make_records()`, `make_translations()` — named by
   the config's `preview_host_path`. With none named, Play uses the base: an empty context, the

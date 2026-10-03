@@ -409,7 +409,10 @@ speakers and reading settings from your [preview host](#hosting-play). Every eff
 returns and the record it leaves print to the editor's **Output**; nothing is applied and nothing is
 saved. Then the window says `Played <id>. Press Escape or close.` Play plays the files on disk, so
 it is refused while the tab holds unsaved edits; and because the game reads your imported
-translations, play once a Save's reimport has finished.
+translations, play once a Save's reimport has finished. The window takes the request as it reads
+it, so each Play plays once: running `preview_host.tscn` again yourself says `Nothing to play`. It
+plays only a request naming a scene or trigger, a locale and a config, each path a `res://` path
+inside your project to a file of that kind, and says which part it refused otherwise.
 
 **Two locales at a time.** The toolbar's **Source** and **Target** dropdowns list every locale column
 your CSV has — the header is the only list of locales there is — and the table shows those two side

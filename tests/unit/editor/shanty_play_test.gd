@@ -9,6 +9,8 @@ const Fixture := preload("res://tests/support/editor_fixture.gd")
 const REQUEST: String = "user://shanty_play_test.cfg"
 const EXAMPLE_HOST: String = "res://addons/shanty/example/example_preview_host.gd"
 const SetFlagEffect := preload("res://addons/shanty/example/example_effect.gd")
+const SCENE: String = "res://addons/shanty/example/example_scene.tres"
+const CONFIG: String = "res://addons/shanty/example/shanty_config.tres"
 
 
 func after_each() -> void:
@@ -32,10 +34,72 @@ func test_a_request_round_trips_through_its_file() -> void:
 	assert_eq(read.config_path, "res://story/shanty_config.tres")
 
 
-func test_no_file_or_a_request_naming_nothing_reads_as_none() -> void:
+func test_no_file_reads_as_none_and_an_empty_request_names_what_it_lacks() -> void:
 	assert_null(ShantyPlay.read(REQUEST))
 	ShantyPlay.new().write(REQUEST)
-	assert_null(ShantyPlay.read(REQUEST))
+	assert_eq(
+		ShantyPlay.read(REQUEST).check(), "Nothing to play: the request names no resource_path."
+	)
+
+
+func test_a_field_the_file_does_not_hold_is_named_by_the_check() -> void:
+	var file := ConfigFile.new()
+	file.set_value(ShantyPlay.SECTION, "resource_path", SCENE)
+	file.set_value(ShantyPlay.SECTION, "config_path", 7)
+	file.save(REQUEST)
+
+	assert_string_contains(ShantyPlay.read(REQUEST).check(), "names no locale")
+	file.set_value(ShantyPlay.SECTION, "locale", "en")
+	file.save(REQUEST)
+	assert_string_contains(ShantyPlay.read(REQUEST).check(), "names no config_path", "not text")
+	ShantyFiles.write_text(REQUEST, "[play\nnot a config file")
+	assert_string_contains(ShantyPlay.read(REQUEST).check(), "not one the Shanty tab wrote")
+	assert_engine_error("ConfigFile parse error")
+
+
+func test_taking_a_request_removes_it() -> void:
+	ShantyPlay.for_selection(load(SCENE), "en").write(REQUEST)
+
+	assert_not_null(ShantyPlay.take(REQUEST))
+	assert_false(FileAccess.file_exists(REQUEST))
+	assert_null(ShantyPlay.take(REQUEST), "a replay finds nothing")
+
+
+func test_each_path_must_be_a_canonical_res_path_of_its_kind() -> void:
+	var cases: Dictionary[String, Array] = {
+		"": [SCENE, CONFIG],
+		"the config user://shanty_config.tres is not a res:// path":
+		[SCENE, "user://shanty_config.tres"],
+		"the scene or trigger C:/story/opening.tres is not a res:// path":
+		["C:/story/opening.tres", CONFIG],
+		"is not a res:// path; Play loads only the project's own files":
+		["/abs/opening.tres", CONFIG],
+		"the scene or trigger res://../outside.tres is not a canonical":
+		["res://../outside.tres", CONFIG],
+		"res://addons//shanty/example/example_scene.tres is not a canonical":
+		["res://addons//shanty/example/example_scene.tres", CONFIG],
+		"res://addons/shanty/./example/example_scene.tres is not a canonical":
+		["res://addons/shanty/./example/example_scene.tres", CONFIG],
+		"is not a canonical res:// path":
+		["res://addons\\shanty\\example\\example_scene.tres", CONFIG],
+		"the config res://nowhere/config.tres does not exist": [SCENE, "res://nowhere/config.tres"],
+		"Refused: %s is not a scene or a trigger." % CONFIG: [CONFIG, CONFIG],
+		"Refused: %s is not a ShantyProjectConfig." % SCENE: [SCENE, SCENE],
+	}
+	for expected: String in cases:
+		var request := ShantyPlay.new()
+		request.resource_path = cases[expected][0]
+		request.config_path = cases[expected][1]
+		request.locale = "en"
+		var refusal: String = request.check()
+
+		if expected.is_empty():
+			assert_eq(refusal, "")
+			assert_eq(request.target, load(SCENE) as Resource)
+			assert_eq(request.config.resource_path, CONFIG)
+		else:
+			assert_string_contains(refusal, expected)
+			assert_null(request.target, expected)
 
 
 func test_play_is_refused_until_a_saved_scene_or_trigger_is_picked() -> void:
@@ -58,7 +122,7 @@ func test_a_request_for_the_selection_names_its_file_and_the_open_config() -> vo
 	assert_eq(request.resource_path, scene.resource_path)
 	assert_eq(request.locale, "fr")
 	assert_eq(request.config_path, ShantyFiles.config_path())
-	assert_not_null(request.load_config())
+	assert_eq(request.check(), "", "the tab's own request holds")
 
 
 func test_an_effect_prints_as_its_type_and_values() -> void:
