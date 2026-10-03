@@ -31,11 +31,15 @@ const NEW_CSV_NAME: String = "dialogue_strings.csv"
 @export_dir var triggers_folder: String = ""
 ## The moments a trigger may name. Empty allows any id.
 @export var trigger_ids: PackedStringArray = []
-## The theme the preview draws with.
+## The theme the line preview and Play draw with, over the project's own.
 @export_file("*.tres", "*.theme") var theme_path: String = ""
+## The colour `[hl]` words draw in for the line preview and Play: what the
+## game passes to `ShantyText.set_highlight_colour()`.
+@export var highlight_colour: Color = Color.WHITE
 ## Characters a line may run to before the lint warns. 0 is no cap.
 @export var length_cap: int = 0
-## The host's preview script, used by the preview pane.
+## The host's `ShantyPreviewHost` script, which Play asks for a context, a
+## speaker provider and settings. Empty plays with Shanty's default.
 @export_file("*.gd") var preview_host_path: String = ""
 
 

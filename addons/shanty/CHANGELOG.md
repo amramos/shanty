@@ -8,6 +8,107 @@ change the authored data's shape; every such change is marked **BREAKING** with 
 The topmost section is always the version in `plugin.cfg`, and a release tag `vX.Y.Z` always has
 its section here.
 
+## 0.3.0
+
+The editor surface for writers, second half: scenes and triggers edited in the Shanty tab, each
+line drawn in the host's own dialogue bar as it is typed, and Play, which runs a scene in a game
+window through the real player. No authored data changes shape, so nothing here is **BREAKING**;
+the config gains one optional field.
+
+### Added
+
+- **A scene pane.** Title and synopsis cells in the source and target locales, their keys named by
+  the scheme's scene patterns and their two rows written as one block after the other scenes';
+  Skippable and Remembered; the steps in order, added, inserted after any step, moved and removed
+  without touching the others, each new step opened in the Inspector and each row summarised from
+  its values (`Say: lamp_talk`, `Fade in 0.5 s`). A Backdrop row picks its still and a Say row its
+  conversation in place through an `EditorResourcePicker`, written through
+  `ShantySceneEdits.set_step_property()`; the Inspector holds the other values. A Say row opens its
+  conversation. Step types come from `ShantyClassCatalog`, `AnimateStep` and `VideoStep` hidden
+  while unbuilt.
+- **A trigger pane.** The moment, chosen from the config's `trigger_ids` when it lists them and
+  typed when it does not; candidates with a scene picked from the scenes folder, a priority (any
+  whole number a 64-bit int holds, typed, as `StoryCandidate.priority` allows: the tab sets no range
+  of its own), `once` and conditions, added, moved and removed. The left pane makes scenes and
+  triggers too, and offers a closed set's free ids for + Trigger; it follows every edit, so an id
+  changed in a form shows in its row and in those free ids at once, the pick kept.
+- **The line preview.** The picked line in the real `DialogueView` scene, instanced under a plain
+  `Control` carrying the project theme with the config's `theme_path` merged over it: the speaker's
+  name and face, `{name:}` tokens and `[hl]` words resolved from the tab's CSV as it is typed, in the
+  source or the target locale, and an asking line's reply turn as the view draws it. Its speakers
+  are Play's: faces, plate variations, the reply speaker and `speaker_names` come from the provider
+  and settings the config's `ShantyPreviewHost` makes, and only the folder's speakers' names from the
+  CSV. A test holds every example line, and the whole reply turn — name, variation, face, plate,
+  text, replies — equal to a playing view driven by the example's own preview host.
+- **Play.** The toolbar's Play writes the picked scene, or the picked trigger whose choice to play,
+  to `user://shanty_preview.cfg` and runs `editor/preview/preview_host.tscn` through
+  `EditorInterface.play_custom_scene()`. The preview host applies the locale, the highlight colour
+  and the theme in code, plays through the real `CutscenePlayer`, prints every effect and the
+  record, and closes on Escape. It is refused while the tab holds unsaved edits. The host takes the
+  request as it reads it — a request plays once, and a second launch without the tab plays nothing
+  — and refuses one, each with its own reason, that lacks a field (the scene or trigger, the locale,
+  the config: all three are required) or names anything but a canonical `res://` path to a file of
+  the expected type: no other scheme, no absolute path, no `.`, `..` or empty part.
+- **`ShantyPreviewHost`**, the base a host extends for Play — `make_context()`,
+  `make_speaker_provider()`, `make_settings()`, `make_records()`, `make_translations()` — named by
+  the config's `preview_host_path`. With none named, Play uses the base: an empty context, the
+  config's speakers folder (`ShantyPreviewSpeakers`), default settings, and the config's CSV as
+  its translations — read from the file (`translations_from()`, one catalogue per locale column,
+  escapes unescaped as the importer does), not from the imported `.translation` files, which a
+  fresh clone lacks — so Play shows the writer's words with nothing registered.
+- **Scene and trigger lint** (`ShantyLintStory`): errors `unplayable_scene` (a step this version does
+  not build, or a Say step whose conversation can loop), `unknown_trigger` (no id, or one outside a
+  closed `trigger_ids`), `duplicate_trigger` (counted apart from `unknown_trigger`, so an unknown id
+  on two triggers reports both) and `unknown_scene` (a candidate with no scene, or one the scenes
+  folder does not hold); warnings `empty_trigger`, `duplicate_candidate` and `unsafe_trigger_id` (a
+  `trigger_ids` entry that is not letters, digits, `_` and `-`). A step is asked through a fresh copy
+  of its script inside the editor, where the loaded one is a placeholder, and directly elsewhere.
+  `ShantyLint.check()` takes the triggers as an optional last argument.
+- **`ShantyProjectConfig.highlight_colour`**, the colour `[hl]` words draw in for the preview and
+  Play. `trigger_ids`, `theme_path` and `preview_host_path` are now read: the first by the lint and
+  the trigger pane, the others by the preview and Play.
+- **Model classes** for all of it, testable without the editor: `ShantySceneEdits`,
+  `ShantyTriggerEdits`, `ShantyPreviewModel` and `ShantyPlay`. Every trigger id, from a closed set
+  or typed, must be a safe file name (`ShantyLintStory.is_safe_stem()`), so no id from the config
+  can put a trigger's file outside the triggers folder.
+- **The example plays from the tab:** `example/example_preview_host.gd` (its context, speakers and
+  strings), `example/example_trigger.tres` (the moment `lamp`), and a config naming both, with a
+  closed set of trigger ids and its highlight colour.
+
+### Changed
+
+- **A new config's CSV is ready to write in.** `ShantyFiles.create_config()` writes the CSV beside
+  it — `keys`, the config's `source_locale`, `_flags`, `_notes`, and a row for each host key with
+  its English text — unless a CSV is already there. `ShantyHostContract.DEFAULT_TEXT` (with
+  `DEFAULT_TEXT_LOCALE`) publishes that text. A CSV opened without the host keys says so in the
+  status line, and **Config ▾ > Add host keys** (`ShantyHostKeys`) adds them as one block — on
+  request only, since a game may declare them elsewhere — so the line preview's reply turn shows
+  the placeholder rather than its key. **+ Locale** fills Source while the CSV has no locale
+  column, suggesting the config's `source_locale`, and the Source dropdown lists `source_locale`
+  first.
+- **Create config… is reachable at any time**, from the toolbar's new **Config ▾** menu beside
+  **Open config in Inspector**, rather than only while no config is open. Switching goes through
+  `ShantyEditorModel.switch_config()`, which points `shanty/config_path` at the new config and opens
+  it, and is refused while edits are unsaved. `ShantyFiles.create_config()` never overwrites a file:
+  it returns `ERR_ALREADY_EXISTS`, and the tab opens an existing config picked in its dialog instead.
+
+- **A Save refused for a file changed on disk offers Reload beside its reason**, in the status
+  line, as well as in the toolbar.
+
+### Fixed
+
+- A new resource saved alongside another new one that names it — a new scene saying a new
+  conversation — is written as a reference to that file, not as an embedded copy:
+  `ShantySaveTransaction.claim_paths()` names every new resource before anything is staged, and a
+  failed save takes the names back.
+- **Two new resources can no longer claim one file.** A new resource is saved as `<folder>/<id>.tres`,
+  and the check for a taken file looked only at the disk, so with one folder serving several kinds
+  an unsaved scene `lamp` and an unsaved trigger `lamp` both claimed `lamp.tres` and Save wrote one
+  over the other. Every `add_*` now refuses a path anything the tab holds already claims, saved or
+  new, of any kind, and `ShantyEditorModel.refusal` names the clash (`… lamp.tres is already the file
+  of the new scene 'lamp'`), which the status line shows; `ShantySaveTransaction.claim_paths()`
+  refuses two resources at one path as a last guard.
+
 ## 0.2.0
 
 The editor surface for writers, first half: a Shanty tab for speakers and conversations, and the

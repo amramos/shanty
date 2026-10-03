@@ -31,4 +31,7 @@ speakers_folder = "res://addons/shanty/example"
 conversations_folder = "res://addons/shanty/example"
 scenes_folder = "res://addons/shanty/example"
 triggers_folder = "res://addons/shanty/example"
+trigger_ids = PackedStringArray("lamp", "chapter_start")
+highlight_colour = Color(0.929412, 0.631373, 0.168627, 1)
 length_cap = 120
+preview_host_path = "res://addons/shanty/example/example_preview_host.gd"

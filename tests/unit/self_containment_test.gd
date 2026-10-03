@@ -16,7 +16,10 @@ const AddonFiles := preload("res://tests/support/addon_files.gd")
 const GdSource := preload("res://tests/support/gd_source.gd")
 ## Every text format in the addon that can hold a path or a class name.
 const SCANNED: PackedStringArray = ["gd", "tscn", "tres", "cfg", "csv", "json"]
-const PATH_PATTERN: String = "res://[^\\s\"'()\\[\\]]*"
+const PATH_PATTERN: String = "res://[^\\s\"'`()\\[\\]]*"
+## The scheme alone names no file: a script checking that a path it is handed
+## is a project path spells it, and that points nowhere outside.
+const BARE_SCHEME: String = "res://"
 const SCRIPT_CLASS_PATTERN: String = 'script_class="([A-Za-z_][A-Za-z0-9_]*)"'
 const UID_PATTERN: String = "uid://[0-9a-z]+"
 ## `load(`, `preload(` and `ResourceLoader.load(` alike.
@@ -62,6 +65,8 @@ func test_no_path_points_outside_the_addon() -> void:
 	var outside: PackedStringArray = []
 	for path: String in AddonFiles.list(AddonFiles.ADDON_ROOT, SCANNED):
 		for found: RegExMatch in pattern.search_all(AddonFiles.read(path)):
+			if found.get_string() == BARE_SCHEME:
+				continue
 			if not found.get_string().begins_with(AddonFiles.ADDON_ROOT):
 				outside.append("%s -> %s" % [path, found.get_string()])
 	assert_eq(outside, PackedStringArray(), "every res:// path stays inside the addon")

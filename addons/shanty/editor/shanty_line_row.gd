@@ -8,6 +8,8 @@ extends VBoxContainer
 
 signal structure_changed
 signal inspect_requested(resource: Resource, owner: Resource)
+## The writer is working on this line: its source or target cell took focus.
+signal line_picked(line: DialogueLine)
 
 const Palette := preload("res://addons/shanty/editor/shanty_editor_palette.gd")
 const CellEdit := preload("res://addons/shanty/editor/shanty_cell_edit.gd")
@@ -76,6 +78,7 @@ func _main_row() -> HBoxContainer:
 	source.text_changed.connect(
 		func(value: String) -> void: _model.set_text(_line.text_key, _model.source_locale, value)
 	)
+	source.focus_entered.connect(func() -> void: line_picked.emit(_line))
 	source_box.add_child(source)
 	_key_state = Palette.caption(_line.text_key, Palette.muted())
 	source_box.add_child(_key_state)
@@ -87,6 +90,7 @@ func _main_row() -> HBoxContainer:
 	target.text_changed.connect(
 		func(value: String) -> void: _model.set_text(_line.text_key, _model.target_locale, value)
 	)
+	target.focus_entered.connect(func() -> void: line_picked.emit(_line))
 	row.add_child(target)
 	row.add_child(_flag_toggles())
 	var notes := LineEdit.new()

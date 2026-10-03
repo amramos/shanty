@@ -7,6 +7,7 @@ extends VBoxContainer
 ## replies are added, removed or moved.
 
 signal inspect_requested(resource: Resource, owner: Resource)
+signal line_picked(line: DialogueLine)
 
 const LineRow := preload("res://addons/shanty/editor/shanty_line_row.gd")
 
@@ -51,6 +52,7 @@ func rebuild() -> void:
 		row.setup(_model, _conversation, index)
 		row.structure_changed.connect(rebuild)
 		row.inspect_requested.connect(inspect_requested.emit)
+		row.line_picked.connect(line_picked.emit)
 		list.add_child(row)
 		_rows.append(row)
 	var add := Button.new()

@@ -12,8 +12,8 @@ extends RefCounted
 ## save before anything is written. **Lint errors refuse it too**; warnings
 ## and coverage never do. **Save is all or nothing**: every file is staged
 ## before any is replaced, and a failure at any point leaves every original
-## byte on disk. Edits to speakers and conversations live in
-## `ShantySpeakerEdits` and `ShantyConversationEdits`.
+## byte on disk. Edits live in `ShantySpeakerEdits`, `ShantyConversationEdits`,
+## `ShantySceneEdits` and `ShantyTriggerEdits`.
 
 ## Emitted after any edit, so the panes can redraw.
 signal changed
@@ -38,6 +38,9 @@ var target_locale: String = ""
 ## A conversation's key prefix as the writer set it, before any of its keys
 ## exists to infer it from (`ShantyConversationEdits.prefix_of()`).
 var key_prefixes: Dictionary[ConversationDefinition, String] = {}
+## Why the last `add_*` call of an edits class made nothing; "" after one that
+## made something.
+var refusal: String = ""
 
 ## Path -> hash when read; "" for a file that did not exist.
 var _hashes: Dictionary[String, String] = {}
@@ -82,8 +85,17 @@ func open(with_config: ShantyProjectConfig, fresh: bool = false) -> String:
 	target_locale = pair[1]
 	problem = Problem.NONE
 	status = ""
+	var missing: PackedStringArray = ShantyHostKeys.missing(document)
 	if not ShantyFiles.exists(config.csv_path):
 		status = "The CSV %s does not exist yet; Save creates it." % config.csv_path
+	elif not missing.is_empty():
+		status = (
+			(
+				"%s lacks %s: Config ▾ > Add host keys adds them, unless your game's own"
+				+ " catalogue declares them."
+			)
+			% [config.csv_path, ", ".join(missing)]
+		)
 	changed.emit()
 	return status
 
@@ -91,6 +103,24 @@ func open(with_config: ShantyProjectConfig, fresh: bool = false) -> String:
 ## Throws away every unsaved edit and reads the files again.
 func reload() -> String:
 	return open(config, true)
+
+
+## Points the project setting at the config at `path` and opens it: what the
+## tab does once Create config… has written one, from any state. "" when it
+## did; otherwise why not, changing nothing -- `path` is not a config, or edits
+## are unsaved, which opening another config would drop. Only sets the
+## setting: the editor writes it to `project.godot`.
+func switch_config(path: String) -> String:
+	if is_dirty():
+		return "Not switched to %s: Save or Reload first; the unsaved edits would be lost." % path
+	var loaded: ShantyProjectConfig = null
+	if ShantyFiles.exists(path):
+		loaded = ShantyFiles.load_resource(path, true) as ShantyProjectConfig
+	if loaded == null:
+		return "Not switched: %s is not a ShantyProjectConfig." % path
+	ShantyFiles.set_config_path(path)
+	open(loaded, true)
+	return ""
 
 
 func locales() -> PackedStringArray:
@@ -103,12 +133,35 @@ func set_locales(source: String, target: String) -> void:
 	changed.emit()
 
 
-## Adds a locale column. False when the name is not a locale code or exists.
+## The locales the Source dropdown offers: the config's `source_locale` first
+## when the CSV has it, then the rest in header order.
+func source_choices() -> PackedStringArray:
+	var choices: PackedStringArray = locales()
+	var preferred: String = config.source_locale if config != null else ""
+	if choices.has(preferred):
+		choices.remove_at(choices.find(preferred))
+		choices.insert(0, preferred)
+	return choices
+
+
+## The locale a new column should be, while Source is empty: the config's
+## `source_locale`. "" once there is a source.
+func suggested_locale() -> String:
+	if config == null or not source_locale.is_empty():
+		return ""
+	return config.source_locale
+
+
+## Adds a locale column. It becomes the source while there is none -- a CSV
+## with no locale column yet -- and otherwise the target while that is empty
+## or the source. False when the name is not a locale code or exists.
 func add_locale(locale: String) -> bool:
 	if not document.add_locale(locale):
 		return false
 	_csv_dirty = true
-	if target_locale.is_empty() or target_locale == source_locale:
+	if source_locale.is_empty():
+		source_locale = locale
+	elif target_locale.is_empty() or target_locale == source_locale:
 		target_locale = locale
 	changed.emit()
 	return true
@@ -170,12 +223,46 @@ func path_of(resource: Resource) -> String:
 	return _new_paths.get(resource, resource.resource_path)
 
 
+## Where a new `kind` (`speaker`, `scene`...) called `id` is saved,
+## `<folder>/<id>.tres`; "" when it may not be made, with `refusal` saying why:
+## no folder, an id another of its kind has (`taken`), or a path already
+## claimed. **A path is claimed across kinds**: when the config points several
+## folders at one place, a new scene and a new trigger with one id would
+## otherwise both be saved as one file, the second over the first.
+func new_path(kind: String, folder: String, id: String, taken: bool) -> String:
+	refusal = ""
+	if folder.is_empty():
+		refusal = "the config names no %ss folder" % kind
+		return ""
+	if taken:
+		refusal = "a %s '%s' exists" % [kind, id]
+		return ""
+	var path: String = folder.path_join(id + ".tres")
+	var holder: Resource = _claimant(path)
+	if holder != null:
+		refusal = "%s is already the file of the %s" % [path, _describe(holder)]
+	elif ShantyFiles.exists(path):
+		refusal = "%s already exists" % path
+	return path if refusal.is_empty() else ""
+
+
+## True when a config is open and `id` matches `pattern`; otherwise false, with
+## `refusal` saying which. The edits classes' first check before `new_path()`.
+func accepts_id(id: String, pattern: String) -> bool:
+	refusal = ""
+	if config == null:
+		refusal = "no Shanty config is open"
+	elif RegEx.create_from_string(pattern).search(id) == null:
+		refusal = "'%s' is not a lower-case id (a-z, 0-9, _)" % id
+	return refusal.is_empty()
+
+
 func is_dirty() -> bool:
 	return _csv_dirty or not _dirty.is_empty()
 
 
 func lint() -> Array[ShantyLintIssue]:
-	return ShantyLint.check(document, config, speakers, conversations, scenes)
+	return ShantyLint.check(document, config, speakers, conversations, scenes, triggers)
 
 
 ## Lints, refuses on an error or a stale file, then writes the CSV and every
@@ -226,7 +313,10 @@ func _paths_to_write() -> PackedStringArray:
 func _write(issues: Array[ShantyLintIssue]) -> ShantySaveResult:
 	var transaction := ShantySaveTransaction.new()
 	var resources: Array[Resource] = _dirty.duplicate()
-	var staged: bool = not _csv_dirty or transaction.stage_text(config.csv_path, document.to_text())
+	var staged: bool = transaction.claim_paths(_new_paths)
+	staged = (
+		staged and (not _csv_dirty or transaction.stage_text(config.csv_path, document.to_text()))
+	)
 	for resource: Resource in resources:
 		staged = staged and transaction.stage_resource(resource, path_of(resource))
 	var committed: bool = staged and transaction.commit()
@@ -281,6 +371,7 @@ func _reset() -> void:
 	source_locale = ""
 	target_locale = ""
 	key_prefixes.clear()
+	refusal = ""
 	_hashes.clear()
 	_dirty.clear()
 	_new_paths.clear()
@@ -312,3 +403,36 @@ func _keep(resource: Resource) -> bool:
 	else:
 		return false
 	return true
+
+
+## The resource this session holds whose file is `path`, saved or new, or null.
+func _claimant(path: String) -> Resource:
+	var held: Array[Resource] = []
+	held.append_array(speakers)
+	held.append_array(conversations)
+	held.append_array(scenes)
+	held.append_array(triggers)
+	for resource: Resource in held:
+		if path_of(resource) == path:
+			return resource
+	return null
+
+
+## `scene 'lamp'`, `new trigger 'lamp'`: what `resource` is, for a message.
+func _describe(resource: Resource) -> String:
+	var kind: String = "resource"
+	var id: String = ""
+	if resource is SpeakerDefinition:
+		kind = "speaker"
+		id = String((resource as SpeakerDefinition).speaker_id)
+	elif resource is ConversationDefinition:
+		kind = "conversation"
+		id = String((resource as ConversationDefinition).conversation_id)
+	elif resource is CutsceneDefinition:
+		kind = "scene"
+		id = String((resource as CutsceneDefinition).scene_id)
+	elif resource is StoryTriggerDefinition:
+		kind = "trigger"
+		id = String((resource as StoryTriggerDefinition).trigger_id)
+	var unsaved: String = "new " if _new_paths.has(resource) else ""
+	return "%s%s '%s'" % [unsaved, kind, id]

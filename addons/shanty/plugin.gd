@@ -2,9 +2,10 @@
 extends EditorPlugin
 
 ## Shanty's editor entry point: a **Shanty** tab beside 2D, 3D and Script, where
-## a writer edits speakers and conversations against the host's translation
-## CSV. The runtime never needs the plugin -- every class registers through
-## `class_name` -- so a game plays its scenes whether or not it is enabled.
+## a writer edits speakers, conversations, scenes and triggers against the
+## host's translation CSV, previews each line and plays a scene. The runtime
+## never needs the plugin -- every class registers through `class_name` -- so a
+## game plays its scenes whether or not it is enabled.
 ##
 ## The tab reads the host's `ShantyProjectConfig`, named by the project setting
 ## `shanty/config_path`, which this plugin registers.

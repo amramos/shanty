@@ -126,3 +126,37 @@ func test_staging_paths_keep_a_resource_extension_and_hide_a_csv() -> void:
 	assert_eq(
 		ShantyFiles.text_staging_path("res://a/strings.csv"), "res://a/strings.csv.shanty-tmp"
 	)
+
+
+func test_a_claimed_path_is_kept_by_a_commit_and_taken_back_by_a_failure() -> void:
+	var kept := _speaker(&"kept")
+	var transaction := ShantySaveTransaction.new()
+	transaction.claim_paths({kept: ROOT + "/kept.tres"} as Dictionary[Resource, String])
+	assert_eq(kept.resource_path, ROOT + "/kept.tres", "named before anything is staged")
+	assert_true(transaction.stage_resource(kept, ROOT + "/kept.tres"))
+	assert_true(transaction.commit())
+	transaction.discard()
+	assert_eq(kept.resource_path, ROOT + "/kept.tres")
+
+	var lost := _speaker(&"lost")
+	var failing := ShantySaveTransaction.new()
+	failing.replace_file = func(_staged: String, _target: String) -> Error: return FAILED
+	failing.claim_paths({lost: ROOT + "/lost.tres"} as Dictionary[Resource, String])
+	assert_true(failing.stage_resource(lost, ROOT + "/lost.tres"))
+	assert_false(failing.commit())
+	failing.discard()
+	assert_eq(lost.resource_path, "", "a failed save names nothing")
+
+
+func test_two_resources_never_claim_one_file() -> void:
+	var first := _speaker(&"lamp")
+	var second := _speaker(&"lamp_too")
+	var transaction := ShantySaveTransaction.new()
+	var paths: Dictionary[Resource, String] = {
+		first: ROOT + "/lamp.tres", second: ROOT + "/lamp.tres"
+	}
+
+	assert_false(transaction.claim_paths(paths))
+	assert_string_contains(transaction.failure, ROOT + "/lamp.tres")
+	assert_eq(first.resource_path, "", "nothing is claimed")
+	assert_eq(second.resource_path, "")
