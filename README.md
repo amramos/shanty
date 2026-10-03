@@ -1,31 +1,21 @@
 # Shanty
 
-Dialogue and short cutscenes for Godot 4, authored as typed data: text in your translation
-catalogue under stable keys, structure in `.tres` resources, a pure runner that hands back what your
-game should do, and a `CanvasLayer` player that presents it.
+[![CI](https://github.com/amramos/shanty/actions/workflows/ci.yml/badge.svg)](https://github.com/amramos/shanty/actions/workflows/ci.yml)
 
-**The addon is [`addons/shanty/`](addons/shanty/) — read its [README](addons/shanty/README.md)** for
-installation, how to run the bundled lighthouse example and then build it again yourself, and the
-host contract. What changed in each version is in its [CHANGELOG](addons/shanty/CHANGELOG.md).
+Dialogue and short cutscenes for Godot 4, authored as typed data: every word in your translation
+CSV under a stable key, the structure in `.tres` resources, a pure runner that hands back what your
+game should do, a `CanvasLayer` player that presents it, and an editor tab where a writer authors
+it, previews each line and plays a scene. This repository is a Godot 4.7 project built around the
+addon:
 
-This repository is a Godot 4.7 project that opens straight into the example (run it with F5), with
-the plugin enabled: its **Shanty** tab opens on the example's conversation, scene and trigger, and
-its Play runs the example's scene in a game window. To install Shanty, copy
-`addons/shanty/` into your project; a release's source archive contains that folder and nothing
-else.
+- **See the demo.** Open the project and press F5: the bundled lighthouse example opens, and
+  **Play the scene** plays it. The **Shanty** tab opens on the example's conversation, scene and
+  trigger, and its **Play** runs the scene in a game window.
+- **Install it.** Copy [`addons/shanty/`](addons/shanty/) into your project and enable the plugin. A
+  release's source archive contains that folder and nothing else.
+- **Learn it.** The addon's [README](addons/shanty/README.md) walks you through writing your first
+  scene in the tab, then hosting it in your game; its [CHANGELOG](addons/shanty/CHANGELOG.md) says
+  what each version changed.
 
-## Developing
-
-```sh
-godot --headless --import
-godot --headless -s addons/gut/gut_cmdln.gd -gexit -gconfig=.gutconfig.json
-python tools/manifest.py --check
-python -m unittest discover -s tools -p "*_test.py"
-```
-
-`addons/gut/` is [GUT](https://github.com/bitwes/Gut) 9.7.1 under its own licence, bundled for the
-tests only. CI (`.github/workflows/ci.yml`) runs the tests, `gdformat --check`, `gdlint`, the
-tools' own tests and the manifest check on every push and pull request, and holds a `vX.Y.Z` tag
-to `plugin.cfg`'s version and the changelog.
-
-MIT licensed — see [LICENSE](LICENSE).
+MIT licensed — see [LICENSE](LICENSE). `addons/gut/` is [GUT](https://github.com/bitwes/Gut) 9.7.1
+under its own licence, bundled for the tests only.
