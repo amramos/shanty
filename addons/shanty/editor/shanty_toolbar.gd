@@ -3,7 +3,7 @@ extends HBoxContainer
 
 ## The tab's toolbar: the working (source) locale and the target locale, both
 ## filled from the CSV header and nothing else; + Locale; the coverage strip;
-## Reload, Lint and Save. It only reports what the writer pressed.
+## Reload, Lint, Save and Play. It only reports what the writer pressed.
 
 signal locales_chosen(source: String, target: String)
 signal locale_requested(locale: String)
@@ -11,6 +11,7 @@ signal reload_pressed
 signal lint_pressed
 signal save_pressed
 signal create_config_pressed
+signal play_pressed
 
 const Palette := preload("res://addons/shanty/editor/shanty_editor_palette.gd")
 
@@ -47,6 +48,9 @@ func build() -> void:
 	_add_button("Reload", reload_pressed.emit)
 	_add_button("Lint", lint_pressed.emit)
 	_add_button("Save", save_pressed.emit)
+	add_child(VSeparator.new())
+	var play: Button = _add_button("Play", play_pressed.emit)
+	play.tooltip_text = "Play the picked scene, or the scene the picked trigger chooses"
 	_source.item_selected.connect(_on_locale_selected.unbind(1))
 	_target.item_selected.connect(_on_locale_selected.unbind(1))
 
@@ -108,8 +112,9 @@ func _add_caption(text: String) -> void:
 	add_child(label)
 
 
-func _add_button(text: String, action: Callable) -> void:
+func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.pressed.connect(action)
 	add_child(button)
+	return button

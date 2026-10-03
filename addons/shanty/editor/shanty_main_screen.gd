@@ -2,23 +2,24 @@
 extends VBoxContainer
 
 ## The Shanty tab. It owns one `ShantyEditorModel` and binds the toolbar, the
-## list, the speaker form and the line table to it; every rule lives in the
+## list, the centre forms and the line preview to it; every rule lives in the
 ## model and the lint, so this script only routes. Lint runs shortly after
 ## each edit and on demand; Save lints first and is refused by an error or by
-## a file changed on disk since it was read.
+## a file changed on disk since it was read. Play hands the picked scene or
+## trigger to the preview host in a game window.
 ##
 ## Everything that needs the running editor -- the Inspector, the filesystem,
-## file dialogs -- is reached only through `_in_editor()`, so the tab can be
-## instantiated and opened headlessly, as the tests do.
+## file dialogs, Play -- is reached only through `_in_editor()`, so the tab can
+## be instantiated and opened headlessly, as the tests do.
 
 const Palette := preload("res://addons/shanty/editor/shanty_editor_palette.gd")
 const Toolbar := preload("res://addons/shanty/editor/shanty_toolbar.gd")
 const ListPane := preload("res://addons/shanty/editor/shanty_list_pane.gd")
-const SpeakerForm := preload("res://addons/shanty/editor/shanty_speaker_form.gd")
-const LineTable := preload("res://addons/shanty/editor/shanty_line_table.gd")
+const CentrePane := preload("res://addons/shanty/editor/shanty_centre_pane.gd")
+const BarPreview := preload("res://addons/shanty/editor/shanty_bar_preview.gd")
 const FilesystemRefresh := preload("res://addons/shanty/editor/shanty_filesystem_refresh.gd")
 const LINT_DELAY: float = 0.4
-const PICK_HINT: String = "Pick a speaker or a conversation on the left, or make one."
+const PICK_HINT: String = "Pick a speaker, conversation, scene or trigger on the left, or make one."
 const NO_CONFIG_HINT: String = (
 	"No Shanty config is open. Press Create config… to make one, or point the project"
 	+ " setting %s at yours." % ShantyProjectConfig.SETTING
@@ -26,6 +27,8 @@ const NO_CONFIG_HINT: String = (
 
 var _model: ShantyEditorModel = ShantyEditorModel.new()
 var _selected: Resource = null
+## The line the preview shows.
+var _previewed: DialogueLine = null
 ## What the Inspector is showing for us, and the resource it belongs to.
 var _inspected: Resource = null
 var _inspected_owner: Resource = null
@@ -36,9 +39,8 @@ var _started: bool = false
 
 @onready var _toolbar: Toolbar = %Toolbar
 @onready var _list: ListPane = %List
-@onready var _hint: Label = %Hint
-@onready var _speaker_form: SpeakerForm = %SpeakerForm
-@onready var _line_table: LineTable = %LineTable
+@onready var _centre: CentrePane = %Centre
+@onready var _preview: BarPreview = %BarPreview
 @onready var _issues: ItemList = %Issues
 @onready var _status: Label = %Status
 
@@ -51,6 +53,8 @@ func start() -> void:
 	_started = true
 	_toolbar.build()
 	_list.build()
+	_preview.build()
+	_centre.connect_forms()
 	_lint_timer.one_shot = true
 	_lint_timer.wait_time = LINT_DELAY
 	_lint_timer.timeout.connect(_run_lint)
@@ -60,12 +64,13 @@ func start() -> void:
 	_toolbar.reload_pressed.connect(_open.bind(true))
 	_toolbar.lint_pressed.connect(_run_lint)
 	_toolbar.save_pressed.connect(_save)
+	_toolbar.play_pressed.connect(_play)
 	_toolbar.create_config_pressed.connect(_on_create_config_pressed)
 	_list.resource_selected.connect(_select)
-	_list.speaker_requested.connect(_on_speaker_requested)
-	_list.conversation_requested.connect(_on_conversation_requested)
-	_speaker_form.inspect_requested.connect(_inspect)
-	_line_table.inspect_requested.connect(_inspect)
+	_list.create_requested.connect(_on_create_requested)
+	_centre.inspect_requested.connect(_inspect)
+	_centre.select_requested.connect(_select)
+	_centre.line_picked.connect(_on_line_picked)
 	_model.changed.connect(_on_model_changed)
 	if _in_editor():
 		EditorInterface.get_inspector().property_edited.connect(_on_property_edited)
@@ -82,12 +87,10 @@ func model() -> ShantyEditorModel:
 func _open(fresh: bool) -> void:
 	var problem: ShantyEditorModel.Problem = _model.open_path(ShantyFiles.config_path(), fresh)
 	var missing: bool = problem != ShantyEditorModel.Problem.NONE
-	_selected = null
-	_show_selected()
-	_list.show_model(_model, _selected)
+	_preview.show_theme(_model.config)
+	_select(null)
 	_toolbar.show_locales(_model.locales(), _model.source_locale, _model.target_locale)
 	_toolbar.show_config_missing(missing)
-	_run_lint()
 	if missing:
 		_say(_model.status + " Press Create config… to make one.")
 	elif _model.status.is_empty():
@@ -98,19 +101,20 @@ func _open(fresh: bool) -> void:
 
 func _select(resource: Resource) -> void:
 	_selected = resource
+	_previewed = ShantyPreviewModel.line_for(resource)
+	_list.show_model(_model, _selected)
 	_show_selected()
 	_run_lint()
 
 
 func _show_selected() -> void:
-	_speaker_form.visible = _selected is SpeakerDefinition
-	_line_table.visible = _selected is ConversationDefinition
-	_hint.visible = _selected == null
-	_hint.text = PICK_HINT if _model.config != null else NO_CONFIG_HINT
-	if _selected is SpeakerDefinition:
-		_speaker_form.show_speaker(_model, _selected)
-	elif _selected is ConversationDefinition:
-		_line_table.show_conversation(_model, _selected)
+	_centre.show_selected(_model, _selected, PICK_HINT if _model.config != null else NO_CONFIG_HINT)
+	_preview.show_line(_model, _previewed)
+
+
+func _on_line_picked(line: DialogueLine) -> void:
+	_previewed = line
+	_preview.show_line(_model, line)
 
 
 func _on_locales_chosen(source: String, target: String) -> void:
@@ -127,30 +131,30 @@ func _on_locale_requested(locale: String) -> void:
 	_say("Added the %s column. Save writes it." % locale)
 
 
-func _on_speaker_requested(id: String) -> void:
+## Makes a new speaker, conversation, scene or trigger and picks it.
+func _on_create_requested(kind: StringName, id: String) -> void:
 	if _model.config == null:
 		_say(NO_CONFIG_HINT)
 		return
-	var speaker: SpeakerDefinition = ShantySpeakerEdits.add_speaker(_model, id)
-	if speaker == null:
-		_say("No speaker made: '%s' is not a lower-case id, or it is taken." % id)
+	var made: Resource = null
+	match kind:
+		&"speaker":
+			made = ShantySpeakerEdits.add_speaker(_model, id)
+		&"conversation":
+			made = ShantyConversationEdits.add_conversation(_model, id)
+		&"scene":
+			made = ShantySceneEdits.add_scene(_model, id)
+		&"trigger":
+			made = ShantyTriggerEdits.add_trigger(_model, id)
+	if made == null:
+		var rule: String = (
+			"one of the config's trigger ids"
+			if kind == &"trigger" and ShantyTriggerEdits.is_closed(_model)
+			else "a lower-case id"
+		)
+		_say("No %s made: '%s' is not %s, or it is taken." % [kind, id, rule])
 		return
-	_selected = speaker
-	_list.show_model(_model, _selected)
-	_show_selected()
-
-
-func _on_conversation_requested(id: String) -> void:
-	if _model.config == null:
-		_say(NO_CONFIG_HINT)
-		return
-	var conversation: ConversationDefinition = ShantyConversationEdits.add_conversation(_model, id)
-	if conversation == null:
-		_say("No conversation made: '%s' is not a lower-case id, or it is taken." % id)
-		return
-	_selected = conversation
-	_list.show_model(_model, _selected)
-	_show_selected()
+	_select(made)
 
 
 func _on_create_config_pressed() -> void:
@@ -198,15 +202,17 @@ func _inspect(resource: Resource, owner: Resource) -> void:
 
 
 ## An edit in the Inspector to something we handed it marks its owner edited,
-## so Save writes the conversation or speaker that holds it.
+## so Save writes the resource that holds it, and redraws what shows it.
 func _on_property_edited(_property: String) -> void:
 	var edited: Object = EditorInterface.get_inspector().get_edited_object()
 	if edited != null and edited == _inspected and _inspected_owner != null:
 		_model.touch(_inspected_owner)
+		_centre.refresh_scene()
 
 
 func _on_model_changed() -> void:
 	_toolbar.show_coverage(_model.coverage())
+	_preview.show_line(_model, _previewed)
 	if is_inside_tree():
 		_lint_timer.start()
 
@@ -223,7 +229,7 @@ func _show_issues(found: Array[ShantyLintIssue]) -> void:
 		_issues.set_item_custom_fg_color(
 			at, Palette.error() if issue.is_error() else Palette.warning()
 		)
-	_line_table.apply_issues(found)
+	_centre.apply_issues(found)
 	_toolbar.show_coverage(_model.coverage())
 
 
@@ -246,6 +252,23 @@ func _save() -> void:
 		if not result.csv_path.is_empty():
 			paths.append(result.csv_path)
 	_filesystem().request(paths)
+
+
+## Writes the Play request for the picked scene or trigger and opens the
+## preview host in a game window. Refused, with the reason, while unsaved.
+func _play() -> void:
+	var refusal: String = ShantyPlay.refusal(_model, _selected)
+	if not refusal.is_empty():
+		_say(refusal)
+		return
+	var request: ShantyPlay = ShantyPlay.for_selection(_selected, _preview.shown_locale())
+	var error: Error = request.write()
+	if error != OK:
+		_say("Could not write %s (%s)." % [ShantyPlay.REQUEST_PATH, error_string(error)])
+		return
+	if _in_editor():
+		EditorInterface.play_custom_scene(ShantyPlay.HOST_SCENE)
+	_say("Playing %s. Its effects and record print to the Output." % request.resource_path)
 
 
 ## The pane's one link to the editor's filesystem; editor-only.
