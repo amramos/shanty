@@ -94,6 +94,13 @@ the config gains one optional field.
 
 - **A Save refused for a file changed on disk offers Reload beside its reason**, in the status
   line, as well as in the toolbar.
+- **The README is a tutorial.** It now walks a writer through the lighthouse scene in the Shanty
+  tab — config, speakers, lines, replies, the target locale, flags, the scene, the trigger, Save,
+  the preview and Play — then covers hosting Shanty in a game, the authoring reference, every lint
+  rule with its severity, and the rules the code keeps, each fact in one place. The Inspector-only
+  walkthrough it replaces is gone. Its test now also holds every `res://addons/shanty/` path, every
+  `Shanty`, `Cutscene` and `Dialogue` name in its prose, the keys its tutorial shows and its version
+  to the code, and every changelog heading to a version a release tag can carry.
 
 ### Fixed
 
