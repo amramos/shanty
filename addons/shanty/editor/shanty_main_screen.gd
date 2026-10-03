@@ -69,7 +69,7 @@ func start() -> void:
 	_list.resource_selected.connect(_select)
 	_list.create_requested.connect(_on_create_requested)
 	_centre.inspect_requested.connect(_inspect)
-	_centre.select_requested.connect(_select)
+	_centre.select_requested.connect(_pick)
 	_centre.line_picked.connect(_on_line_picked)
 	_model.changed.connect(_on_model_changed)
 	if _in_editor():
@@ -88,7 +88,7 @@ func _open(fresh: bool) -> void:
 	var problem: ShantyEditorModel.Problem = _model.open_path(ShantyFiles.config_path(), fresh)
 	var missing: bool = problem != ShantyEditorModel.Problem.NONE
 	_preview.show_theme(_model.config)
-	_select(null)
+	_pick(null)
 	_toolbar.show_locales(_model.locales(), _model.source_locale, _model.target_locale)
 	_toolbar.show_config_missing(missing)
 	if missing:
@@ -99,10 +99,18 @@ func _open(fresh: bool) -> void:
 		_say(_model.status)
 
 
+## Picks `resource` and lists it as picked: for every pick the list did not
+## make itself.
+func _pick(resource: Resource) -> void:
+	_select(resource)
+	_list.show_model(_model, _selected)
+
+
+## Shows `resource`. Never refills the list, which may be the one asking, from
+## inside its own selection signal.
 func _select(resource: Resource) -> void:
 	_selected = resource
 	_previewed = ShantyPreviewModel.line_for(resource)
-	_list.show_model(_model, _selected)
 	_show_selected()
 	_run_lint()
 
@@ -154,7 +162,7 @@ func _on_create_requested(kind: StringName, id: String) -> void:
 		)
 		_say("No %s made: '%s' is not %s, or it is taken." % [kind, id, rule])
 		return
-	_select(made)
+	_pick(made)
 
 
 func _on_create_config_pressed() -> void:
