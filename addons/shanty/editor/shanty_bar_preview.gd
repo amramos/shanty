@@ -8,6 +8,15 @@ extends VBoxContainer
 ## editor the view's script does not run. What to draw is
 ## `ShantyPreviewModel`'s; this pane only binds it.
 ##
+## **Its speakers are Play's.** It draws through the speaker provider and
+## settings the config's `ShantyPreviewHost` makes, made once per config. In the
+## editor the host script is made with `GDScript.new()`, which runs a real
+## instance even of a script that is not `@tool` -- as the lint's working copy
+## does -- while the resources it loads from disk carry placeholder instances
+## that answer their stored values but no method. A host's provider that reads
+## its definitions' values, as the example's and the default do, draws here
+## exactly as in Play.
+##
 ## **Its limit.** It is the real bar under the real theme at the pane's width,
 ## with the text whole: not the player's layer, letterbox, backdrop or dim, not
 ## your game's resolution, and no typing. Play shows all of those.
@@ -18,6 +27,9 @@ const STAGE_HEIGHT: float = 220.0
 
 var _model: ShantyEditorModel = null
 var _line: DialogueLine = null
+## What the config's preview host draws speakers with, and its settings.
+var _host_speakers: ShantySpeakerProvider = null
+var _host_settings: ShantyViewSettings = null
 var _stage: Control = Control.new()
 var _view: Control = null
 var _target: CheckButton = CheckButton.new()
@@ -51,9 +63,16 @@ func build() -> void:
 	add_child(_note)
 
 
-## Reads the host's theme again: after opening a config, or Reload.
-func show_theme(config: ShantyProjectConfig) -> void:
+## Reads the host's theme and preview host again: after opening a config, or
+## Reload.
+func show_config(config: ShantyProjectConfig) -> void:
 	_stage.theme = ShantyPreviewModel.stage_theme(config)
+	_host_speakers = null
+	_host_settings = null
+	if config != null:
+		var host: ShantyPreviewHost = ShantyPreviewHost.for_config(config)
+		_host_speakers = host.make_speaker_provider()
+		_host_settings = host.make_settings()
 
 
 ## Shows `line` of the open model; null shows an empty bar and a hint.
@@ -79,7 +98,9 @@ func _redraw() -> void:
 	if _view == null:
 		return
 	var preview: ShantyPreviewModel = (
-		ShantyPreviewModel.for_line(_model, _line, shown_locale(), _reply.button_pressed)
+		ShantyPreviewModel.for_line(
+			_model, _line, shown_locale(), _reply.button_pressed, _host_speakers, _host_settings
+		)
 		if _model != null
 		else ShantyPreviewModel.new()
 	)
@@ -94,9 +115,10 @@ func _redraw() -> void:
 		if not preview.colour_variation.is_empty()
 		else DialogueView.NAME_VARIATION
 	)
+	name_plate.visible = preview.speaker_names
 	face.texture = preview.face
 	face.visible = preview.face != null
-	plate_name.text = preview.speaker_name
+	plate_name.text = preview.speaker_name if preview.speaker_names else ""
 	plate_name.visible = preview.face == null
 	for label: Control in [line_label, name_plate, plate_name]:
 		label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED

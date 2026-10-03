@@ -32,8 +32,11 @@ the config gains one optional field.
 - **The line preview.** The picked line in the real `DialogueView` scene, instanced under a plain
   `Control` carrying the project theme with the config's `theme_path` merged over it: the speaker's
   name and face, `{name:}` tokens and `[hl]` words resolved from the tab's CSV as it is typed, in the
-  source or the target locale, and an asking line's reply turn as the view draws it. A test holds it
-  equal to a playing view showing the same line.
+  source or the target locale, and an asking line's reply turn as the view draws it. Its speakers
+  are Play's: faces, plate variations, the reply speaker and `speaker_names` come from the provider
+  and settings the config's `ShantyPreviewHost` makes, and only the folder's speakers' names from the
+  CSV. A test holds every example line, and the whole reply turn — name, variation, face, plate,
+  text, replies — equal to a playing view driven by the example's own preview host.
 - **Play.** The toolbar's Play writes the picked scene, or the picked trigger whose choice to play,
   to `user://shanty_preview.cfg` and runs `editor/preview/preview_host.tscn` through
   `EditorInterface.play_custom_scene()`. The preview host applies the locale, the highlight colour

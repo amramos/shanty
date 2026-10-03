@@ -392,14 +392,19 @@ The centre edits what you picked:
 
 **The preview.** The right pane draws the line you are working on — the first line of a picked
 conversation or scene, then whichever line's cell you click into — in your real dialogue bar:
-`ui/dialogue_view.tscn` itself, under your project theme with `theme_path` laid over it. The
-speaker's name and face, `{name:<id>}` tokens and `[hl]` words (in `highlight_colour`) are resolved
-from the CSV as you type, before you save. **Target** shows the target locale's text instead of the
-source's; **Reply turn** shows an asking line's replies as the reply turn draws them — the reply
-speaker's face and name, the placeholder, the buttons. Its limit: it is the real bar under the real
-theme at the pane's width, with every line whole — not the player's layer, letterbox, backdrop or
-dim, not your game's resolution, no typing, and no reply speaker your host names only in
-`ShantyViewSettings.reply_speaker_id`. Play shows everything else.
+`ui/dialogue_view.tscn` itself, under your project theme with `theme_path` laid over it. Its
+speakers are Play's: it draws through the speaker provider and settings your
+[preview host](#hosting-play) makes, so a portrait your provider generates, a plate variation, a
+reply speaker named in your settings and `speaker_names` show here as they do in Play. The words are
+the CSV's as you type, before you save: the line, `{name:<id>}` tokens, `[hl]` words (in
+`highlight_colour`), and the name of every speaker your speakers folder defines. **Target** shows
+the target locale's text instead of the source's; **Reply turn** shows an asking line's replies as
+the reply turn draws them — the reply speaker's face and name, the placeholder, the buttons. Its
+limit: it is the real bar under the real theme at the pane's width, with every line whole — not the
+player's layer, letterbox, backdrop or dim, not your game's resolution, and no typing; a face or
+plate variation comes from your provider, which reads your files as saved; and a speaker your
+provider makes up without a definition in the folder is named as your provider names it, through
+translations the editor may not have loaded. Play shows everything else.
 
 **Play.** Pick a scene — or a trigger, to play the scene it would choose — and press **Play** in
 the toolbar. The tab writes what to play to `user://shanty_preview.cfg` and runs
@@ -493,9 +498,14 @@ game provides, and name the script in your config's `preview_host_path`:
 - `make_translations() -> Array[Translation]` — catalogues to add while the preview plays, for
   strings your project does not register (the example's are not).
 
-`config` holds your `ShantyProjectConfig` by the time any of them is called. Play runs in a game
-window, never in the editor, so the script needs no `@tool`. For the tutorial's host, starting with
-its flag set (save it as `res://story/story_preview_host.gd` and name it in your config):
+`config` holds your `ShantyProjectConfig` by the time any of them is called. The script needs no
+`@tool`: Play runs it in a game window, and the line preview, which asks it for
+`make_speaker_provider()` and `make_settings()` inside the editor, makes it with `GDScript.new()`,
+which runs any script there. One thing differs in the editor: a resource your code loads from disk
+— a `SpeakerDefinition`, say — is a placeholder there, holding its stored values but running no
+method. Read a definition's values, never call its methods, in the provider and settings, and the
+preview draws exactly what Play does. For the tutorial's host, starting with its flag set (save it
+as `res://story/story_preview_host.gd` and name it in your config):
 
 ```gdscript
 extends ShantyPreviewHost

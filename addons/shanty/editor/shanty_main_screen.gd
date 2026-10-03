@@ -89,7 +89,7 @@ func model() -> ShantyEditorModel:
 func _open(fresh: bool) -> void:
 	var problem: ShantyEditorModel.Problem = _model.open_path(ShantyFiles.config_path(), fresh)
 	var missing: bool = problem != ShantyEditorModel.Problem.NONE
-	_preview.show_theme(_model.config)
+	_preview.show_config(_model.config)
 	_pick(null)
 	_toolbar.show_locales(_model.locales(), _model.source_locale, _model.target_locale)
 	_toolbar.show_config_missing(missing)

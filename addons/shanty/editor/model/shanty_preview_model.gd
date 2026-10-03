@@ -14,6 +14,12 @@ extends RefCounted
 ## `highlight_colour` -- and the reply turn is chosen by
 ## `ShantyReplyTurn.reply_speaker()`, the view's own rule. Words appear as they
 ## are typed, before Save.
+##
+## **Its speakers are Play's.** Given the provider and settings the config's
+## `ShantyPreviewHost` makes, each speaker's face, plate variation and
+## knownness are that provider's -- a portrait it generates shows here as in
+## Play -- and the reply speaker and `speaker_names` are those settings'; only
+## the folder's speakers' names come from the CSV.
 
 var speaker_name: String = ""
 ## The speaker's own name plate variation; empty uses `DialogueView`'s.
@@ -26,6 +32,9 @@ var text: String = ""
 var replies: PackedStringArray = []
 ## True when the reply speaker has taken the bar.
 var replying: bool = false
+## False when the settings show no names: the name plate is hidden and the
+## flat plate stays blank, as in the view.
+var speaker_names: bool = true
 ## The locale shown, and whether its cell for the line is empty.
 var locale: String = ""
 var empty_cell: bool = false
@@ -34,15 +43,28 @@ var empty_cell: bool = false
 ## What to draw for `line` in `shown_locale`. `reply_turn` draws the turn that
 ## follows an asking line: the reply speaker (when the line names one the
 ## speakers folder knows) with the placeholder and the replies, or the asker
-## with the replies under the question.
+## with the replies under the question. `host_speakers` and `settings` are what
+## the config's preview host makes (`ShantyPreviewHost.make_speaker_provider()`
+## and `make_settings()`); without them the speakers folder alone draws, under
+## default settings.
 static func for_line(
-	model: ShantyEditorModel, line: DialogueLine, shown_locale: String, reply_turn: bool = false
+	model: ShantyEditorModel,
+	line: DialogueLine,
+	shown_locale: String,
+	reply_turn: bool = false,
+	host_speakers: ShantySpeakerProvider = null,
+	settings: ShantyViewSettings = null
 ) -> ShantyPreviewModel:
 	var made := ShantyPreviewModel.new()
 	made.locale = shown_locale
 	if line == null or model.config == null:
 		return made
-	var speakers: ShantyPreviewSpeakers = ShantyPreviewSpeakers.from_model(model, shown_locale)
+	if settings == null:
+		settings = ShantyViewSettings.new()
+	made.speaker_names = settings.speaker_names
+	var speakers: ShantyPreviewSpeakers = ShantyPreviewSpeakers.from_model(
+		model, shown_locale, host_speakers
+	)
 	made._show_speaker(speakers.resolve(line.speaker_id), line.face)
 	var written: String = model.document.text(line.text_key, shown_locale).c_unescape()
 	made.empty_cell = written.is_empty()
@@ -54,9 +76,7 @@ static func for_line(
 		made.replies.append(
 			ShantyText.strip_tags(ShantyText.resolve_names(speakers.cell(key), speakers))
 		)
-	var answering: ShantySpeaker = ShantyReplyTurn.reply_speaker(
-		line, ShantyViewSettings.new(), speakers
-	)
+	var answering: ShantySpeaker = ShantyReplyTurn.reply_speaker(line, settings, speakers)
 	if answering != null:
 		made.replying = true
 		made._show_speaker(answering, &"")

@@ -3,7 +3,9 @@ extends GutTest
 ## The line preview over the example: `ShantyPreviewModel` resolves the
 ## speaker, face, text and replies from the tab's CSV, and the preview pane
 ## draws them in the real `DialogueView` scene exactly as a playing view draws
-## the same line -- the text, the name, the face and the replies.
+## the same line -- the text, the name, its variation, the face, the plate and
+## the replies -- when that view is driven as Play drives it, by the speaker
+## provider and settings the example's own preview host makes.
 
 const BarPreview := preload("res://addons/shanty/editor/shanty_bar_preview.gd")
 const ExampleHost := preload("res://addons/shanty/example/example_host.gd")
@@ -39,7 +41,7 @@ func test_a_line_resolves_its_speaker_and_its_text_from_the_csv() -> void:
 	var preview := ShantyPreviewModel.for_line(_model, _line(0), "en")
 
 	assert_eq(preview.speaker_name, _model.text("SHANTY_EXAMPLE_SPEAKER_KEEPER", "en"))
-	assert_null(preview.face, "the example's speakers draw no face: the flat plate")
+	assert_null(preview.face, "the folder alone: the example's faces have no texture")
 	assert_string_contains(preview.text, HIGHLIGHT + "lamp[/color]", "[hl] in the config's colour")
 	assert_false(preview.empty_cell)
 	assert_eq(ShantyText.highlight_colour(), _previous_highlight, "the shared colour is put back")
@@ -81,6 +83,35 @@ func test_the_reply_turn_is_the_reply_speakers_with_the_replies_as_buttons_read(
 	)
 
 
+func test_over_the_host_provider_the_face_is_the_hosts_and_the_name_the_csvs() -> void:
+	var host: ShantyPreviewHost = ShantyPreviewHost.for_config(_model.config)
+	var provider: ShantySpeakerProvider = host.make_speaker_provider()
+	_model.set_text("SHANTY_EXAMPLE_SPEAKER_KEEPER", "en", "Typed just now")
+	var preview := ShantyPreviewModel.for_line(_model, _line(0), "en", false, provider)
+
+	assert_not_null(preview.face, "the example host's generated portrait")
+	assert_eq(preview.speaker_name, "Typed just now", "the name as typed, before Save")
+	var nobody := ShantyPreviewSpeakers.from_model(_model, "en", provider).resolve(&"nobody")
+	assert_false(nobody.known, "a speaker the host does not know stays unknown")
+	assert_eq(nobody.display_name, "nobody")
+
+
+func test_the_hosts_settings_decide_names_and_the_reply_speaker() -> void:
+	var settings := ShantyViewSettings.new()
+	settings.speaker_names = false
+	var line := DialogueLine.new()
+	line.speaker_id = &"keeper"
+	line.text_key = "SHANTY_EXAMPLE_LINE_3"
+	line.choices = _line(2).choices
+	var plain := ShantyPreviewModel.for_line(_model, line, "en", true)
+	settings.reply_speaker_id = &"visitor"
+	var turn := ShantyPreviewModel.for_line(_model, line, "en", true, null, settings)
+
+	assert_false(plain.replying, "no reply speaker named on the line or by default settings")
+	assert_true(turn.replying, "the settings' reply speaker answers")
+	assert_false(turn.speaker_names)
+
+
 func test_the_line_to_show_follows_what_is_picked() -> void:
 	assert_eq(ShantyPreviewModel.line_for(_conversation), _line(0))
 	assert_eq(ShantyPreviewModel.line_for(_model.scenes[0]), _line(0), "a scene's first said line")
@@ -101,31 +132,37 @@ func _pane(line: DialogueLine, reply_turn: bool = false) -> Control:
 	var pane: BarPreview = BarPreview.new()
 	add_child_autofree(pane)
 	pane.build()
-	pane.show_theme(_model.config)
+	pane.show_config(_model.config)
 	(pane.get(&"_reply") as CheckButton).button_pressed = reply_turn
 	pane.show_line(_model, line)
 	return pane.view()
 
 
-## A playing DialogueView showing `line` whole, with the example's strings in
-## the TranslationServer and the config's highlight colour.
+## A DialogueView playing `line` whole, driven as Play drives it: the speaker
+## provider and settings the example's preview host makes, its strings in the
+## TranslationServer, and the config's highlight colour.
 func _real_view(line: DialogueLine) -> DialogueView:
-	_translations = ExampleHost.load_translations(ExampleHost.STRINGS_PATH)
+	var host: ShantyPreviewHost = ShantyPreviewHost.for_config(_model.config)
+	_translations = host.make_translations()
 	for translation: Translation in _translations:
 		TranslationServer.add_translation(translation)
 	TranslationServer.set_locale("en")
 	ShantyText.set_highlight_colour(_model.config.highlight_colour)
 	var view: DialogueView = VIEW_SCENE.instantiate()
 	add_child_autofree(view)
-	var settings := ShantyViewSettings.new()
+	var settings: ShantyViewSettings = host.make_settings()
 	settings.text_speed_chars_per_second = 0.0
-	view.configure(ShantyPreviewSpeakers.from_folder(_model.config.speakers_folder), settings)
+	view.configure(host.make_speaker_provider(), settings)
 	view.show_line(line)
 	return view
 
 
+## Everything the bar shows of a speaker and a line. A face is compared by its
+## pixels: the preview's provider and Play's each draw their own texture.
 func _drawn(view: Control) -> Dictionary:
 	var name_plate: Label = view.get_node(^"%NamePlate")
+	var plate_name: Label = view.get_node(^"%PlateName")
+	var face: TextureRect = view.get_node(^"%Face")
 	var replies: PackedStringArray = []
 	for button: Node in view.get_node(^"%Choices").get_children():
 		if not button.is_queued_for_deletion():
@@ -133,29 +170,34 @@ func _drawn(view: Control) -> Dictionary:
 	return {
 		"line": (view.get_node(^"%Line") as RichTextLabel).text,
 		"name": name_plate.text,
+		"name shown": name_plate.visible,
 		"variation": name_plate.theme_type_variation,
-		"face": (view.get_node(^"%Face") as TextureRect).texture,
-		"plate": (view.get_node(^"%PlateName") as Label).visible,
+		"face": face.texture.get_image().get_data() if face.texture != null else null,
+		"face shown": face.visible,
+		"plate": plate_name.visible,
+		"plate name": plate_name.text,
 		"replies": replies,
 	}
 
 
-func test_the_preview_draws_a_line_as_a_playing_view_does() -> void:
+func test_the_preview_draws_every_line_as_play_does() -> void:
 	for index: int in _conversation.lines.size():
 		var preview: Dictionary = _drawn(_pane(_line(index)))
 		var real: Dictionary = _drawn(_real_view(_line(index)))
 
 		assert_eq(preview, real, "line %d" % (index + 1))
+		assert_not_null(preview["face"], "line %d: the host's portrait, not a flat plate" % index)
+		assert_false(preview["plate"])
 
 
-func test_the_preview_draws_the_reply_turn_as_a_playing_view_does() -> void:
+func test_the_preview_draws_the_reply_turn_as_play_does() -> void:
 	var real_view: DialogueView = _real_view(_line(2))
 	real_view.handle_tap()
 	await wait_process_frames(1)
 	var preview: Dictionary = _drawn(_pane(_line(2), true))
 	var real: Dictionary = _drawn(real_view)
 
-	assert_eq(preview["replies"], real["replies"])
+	assert_eq(preview, real)
 	assert_eq(preview["replies"].size(), 2)
-	assert_eq(preview["name"], real["name"])
-	assert_eq(preview["line"], real["line"])
+	assert_eq(preview["name"], _model.text("SHANTY_EXAMPLE_SPEAKER_VISITOR", "en"))
+	assert_not_null(preview["face"], "the reply speaker's portrait")
